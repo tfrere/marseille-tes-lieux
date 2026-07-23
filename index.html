@@ -316,6 +316,9 @@ const map = L.map('map', {
 map.attributionControl.setPrefix(false);
 map.createPane('quartiers');
 map.getPane('quartiers').style.zIndex = 350;
+map.createPane('qLabels');
+map.getPane('qLabels').style.zIndex = 450;
+map.getPane('qLabels').style.pointerEvents = 'none';
 
 const PROVIDERS = [
   {url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attr:'© OpenStreetMap'},
@@ -405,7 +408,7 @@ fetch('quartiers.geojson')
           permanent:true,
           direction:'center',
           className:'q-label',
-          pane:'quartiers'
+          pane:'qLabels'
         })
           .setContent(name)
           .setLatLng(c);
