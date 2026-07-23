@@ -452,14 +452,14 @@ function isVisible(p){
   return activeCats.has(p.c);
 }
 
-function refresh(fit = true){
+function refresh(fit = false){
   markers.forEach(m => {
     const show = isVisible(m._place);
     if(show && !map.hasLayer(m)) m.addTo(map);
     if(!show && map.hasLayer(m)) map.removeLayer(m);
   });
   const visible = markers.filter(m => isVisible(m._place));
-  if(fit && visible.length && !routeLine){
+  if(fit && visible.length){
     map.fitBounds(L.featureGroup(visible).getBounds().pad(0.12));
   }
   document.querySelectorAll('.chip[data-cat]').forEach(ch => {
@@ -565,7 +565,6 @@ async function maybeRoute(){
     routeLine = L.polyline(route.coords, {
       color:'#0E7C86', weight:5, opacity:.92, lineJoin:'round', lineCap:'round'
     }).addTo(map);
-    map.fitBounds(routeLine.getBounds().pad(0.18));
     setRouteMeta(
       `<strong>${formatMins(route.mins)} à vélo · ${formatKm(route.km)}</strong>` +
       `<div class="sub">${a.label} → ${b.label}</div>`
@@ -617,7 +616,7 @@ map.on('click', e => {
 });
 
 window.addEventListener('resize', () => map.invalidateSize());
-refresh();
+refresh(true);
 updateLabels();
 </script>
 </body>
