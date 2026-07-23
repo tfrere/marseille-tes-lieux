@@ -35,21 +35,6 @@
   .overlay{position:absolute;z-index:1000;pointer-events:none}
   .overlay > *{pointer-events:auto}
 
-  .brand{
-    top:calc(12px + var(--safe-t));
-    left:calc(54px + var(--safe-l));
-    max-width:min(46vw,240px);
-  }
-  h1{
-    font-size:13px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
-    display:inline-flex;align-items:baseline;gap:6px;flex-wrap:wrap;
-    padding:7px 10px;border-radius:3px;
-    background:rgba(246,244,238,.94);border:1px solid var(--line);
-    backdrop-filter:blur(6px);
-    box-shadow:0 2px 10px rgba(20,48,63,.08);
-  }
-  h1 .count{font-weight:500;font-size:11px;letter-spacing:0;text-transform:none;color:#6b7a83}
-
   .filters{
     top:calc(12px + var(--safe-t));
     right:calc(12px + var(--safe-r));
@@ -168,13 +153,8 @@
   .arr-tip::before{display:none}
 
   @media (max-width:720px){
-    .brand{
-      left:calc(10px + var(--safe-l));
-      max-width:calc(100vw - 118px - var(--safe-l) - var(--safe-r));
-    }
-    h1{font-size:12px;padding:7px 9px}
     .filters{
-      top:calc(52px + var(--safe-t));
+      top:calc(12px + var(--safe-t));
       left:calc(10px + var(--safe-l));
       right:calc(10px + var(--safe-r));
       max-width:none;
@@ -215,9 +195,6 @@
 </head>
 <body>
 <div id="map"></div>
-<div class="overlay brand">
-  <h1>Marseille, tes lieux <span class="count" id="count"></span></h1>
-</div>
 <div class="overlay filters">
   <div class="filters-head">
     <button type="button" class="bike-btn" id="bikeBtn" aria-pressed="false">
@@ -466,7 +443,6 @@ function refresh(fit = true){
     if(!show && map.hasLayer(m)) map.removeLayer(m);
   });
   const visible = markers.filter(m => isVisible(m._place));
-  document.getElementById('count').textContent = visible.length + ' lieux';
   if(fit && visible.length && !routeLine){
     map.fitBounds(L.featureGroup(visible).getBounds().pad(0.12));
   }
