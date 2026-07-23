@@ -61,12 +61,8 @@
   .route-bar button.primary{
     border-color:var(--ink);background:var(--ink);color:#fff;
   }
-  .filter-label{
-    font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
-    color:#6b7a83;margin:8px 0 0;
-  }
   .chips{
-    display:flex;gap:6px;overflow-x:auto;padding:6px 0 2px;
+    display:flex;gap:6px;overflow-x:auto;padding:8px 0 2px;
     -webkit-overflow-scrolling:touch;scrollbar-width:none;
   }
   .chips::-webkit-scrollbar{display:none}
@@ -116,6 +112,11 @@
     font-size:11px;font-weight:700;padding:3px 6px;box-shadow:none;
   }
   .pick-label::before{display:none}
+  .q-tip{
+    background:rgba(20,48,63,.88);color:#fff;border:none;border-radius:3px;
+    font-size:11px;font-weight:700;padding:4px 7px;box-shadow:none;
+  }
+  .q-tip::before{display:none}
   @media (prefers-reduced-motion: reduce){
     .chip,.bike-btn{transition:none}
   }
@@ -134,10 +135,7 @@
       <button type="button" id="clearRouteBtn">Effacer</button>
     </div>
   </div>
-  <div class="filter-label">Catégories</div>
   <div class="chips" id="chips" role="group" aria-label="Filtrer par catégorie"></div>
-  <div class="filter-label">Arrondissements</div>
-  <div class="chips" id="arrChips" role="group" aria-label="Filtrer par arrondissement"></div>
 </header>
 <div id="map"></div>
 <div id="basemap-note">Fond de carte indisponible dans cet aperçu.<br>Télécharge le fichier et ouvre-le dans un navigateur pour l'afficher.</div>
@@ -274,10 +272,39 @@ function tryProvider(i){
 }
 tryProvider(0);
 
-const ARRONDissements = [...new Set(PLACES.map(p => p.a))].sort((a, b) => a - b);
 const activeCats = new Set(Object.keys(CATS));
-const activeArrs = new Set(ARRONDissements);
 const markers = [];
+let quartiersLayer = null;
+
+fetch('quartiers.geojson')
+  .then(r => r.json())
+  .then(data => {
+    quartiersLayer = L.geoJSON(data, {
+      style: {
+        color:'#14303F',
+        weight:1,
+        opacity:.2,
+        fillColor:'#14303F',
+        fillOpacity:.04
+      },
+      onEachFeature(feature, layer){
+        const name = feature.properties.n;
+        layer.bindTooltip(name, {
+          sticky:true,
+          direction:'center',
+          className:'q-tip',
+          opacity:.95
+        });
+        layer.on('click', e => {
+          if(!routeMode) return;
+          L.DomEvent.stopPropagation(e);
+          addPick({lat:e.latlng.lat, lng:e.latlng.lng, label:name});
+        });
+      }
+    }).addTo(map);
+    quartiersLayer.bringToBack();
+  })
+  .catch(() => {});
 
 let routeMode = false;
 let picks = []; // [{lat,lng,label,marker?}]
@@ -315,7 +342,7 @@ function updateLabels(){
 map.on('zoomend', updateLabels);
 
 function isVisible(p){
-  return activeCats.has(p.c) && activeArrs.has(p.a);
+  return activeCats.has(p.c);
 }
 
 function refresh(fit = true){
@@ -332,11 +359,6 @@ function refresh(fit = true){
   document.querySelectorAll('.chip[data-cat]').forEach(ch => {
     ch.classList.toggle('off', !activeCats.has(ch.dataset.cat));
     ch.setAttribute('aria-pressed', activeCats.has(ch.dataset.cat));
-  });
-  document.querySelectorAll('.chip[data-arr]').forEach(ch => {
-    const a = Number(ch.dataset.arr);
-    ch.classList.toggle('off', !activeArrs.has(a));
-    ch.setAttribute('aria-pressed', activeArrs.has(a));
   });
 }
 
@@ -372,29 +394,6 @@ Object.entries(CATS).forEach(([key, cat]) => {
     refresh();
   };
   chips.appendChild(b);
-});
-
-const arrChips = document.getElementById('arrChips');
-const allArrChip = document.createElement('button');
-allArrChip.className = 'chip all';
-allArrChip.textContent = 'Tous';
-allArrChip.onclick = () => {
-  ARRONDissements.forEach(a => activeArrs.add(a));
-  refresh();
-};
-arrChips.appendChild(allArrChip);
-
-ARRONDissements.forEach(a => {
-  const b = document.createElement('button');
-  b.className = 'chip';
-  b.dataset.arr = String(a);
-  b.setAttribute('aria-pressed','true');
-  b.textContent = arrLabel(a);
-  b.onclick = () => {
-    toggleSet(activeArrs, a, ARRONDissements);
-    refresh();
-  };
-  arrChips.appendChild(b);
 });
 
 function setRouteMeta(html){
