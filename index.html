@@ -324,6 +324,7 @@ const map = L.map('map', {
 map.attributionControl.setPrefix(false);
 map.createPane('arronds');
 map.getPane('arronds').style.zIndex = 350;
+map.getPane('arronds').style.pointerEvents = 'none';
 map.createPane('arrLabels');
 map.getPane('arrLabels').style.zIndex = 450;
 map.getPane('arrLabels').style.pointerEvents = 'none';
@@ -391,6 +392,7 @@ fetch('arrondissements.geojson')
   .then(data => {
     arrondsLayer = L.geoJSON(data, {
       pane:'arronds',
+      interactive:false,
       style: {
         color:'#14303F',
         weight:1.75,
@@ -400,17 +402,6 @@ fetch('arrondissements.geojson')
       },
       onEachFeature(feature, layer){
         const name = feature.properties.n;
-        layer.bindTooltip(name + ' arr.', {
-          sticky:true,
-          direction:'center',
-          className:'arr-tip',
-          opacity:.95
-        });
-        layer.on('click', e => {
-          if(!routeMode) return;
-          L.DomEvent.stopPropagation(e);
-          addPick({lat:e.latlng.lat, lng:e.latlng.lng, label:name + ' arr.'});
-        });
         const c = layer.getBounds().getCenter();
         const tip = L.tooltip({
           permanent:true,
