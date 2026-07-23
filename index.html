@@ -10,6 +10,7 @@
     --ink:#14303F;
     --paper:#F6F4EE;
     --line:#DCD7CB;
+    --route:#0E7C86;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
@@ -42,6 +43,24 @@
   .bike-btn.on{background:#fff;color:var(--ink)}
   .bike-btn:disabled{opacity:.55;cursor:wait}
   .bike-btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  .route-bar{
+    display:none;align-items:center;justify-content:space-between;gap:10px;
+    margin-top:8px;padding:8px 10px;border:1px solid var(--line);
+    background:#fff;border-radius:3px;font-size:12.5px;line-height:1.35;
+  }
+  .route-bar.show{display:flex}
+  .route-bar .meta{min-width:0}
+  .route-bar .meta strong{font-weight:800}
+  .route-bar .meta .sub{color:#3c4f5a;margin-top:2px}
+  .route-bar .actions{display:flex;gap:6px;flex:0 0 auto}
+  .route-bar button{
+    font:inherit;font-size:12px;font-weight:700;line-height:1;
+    padding:7px 9px;border-radius:3px;border:1px solid var(--line);
+    background:var(--paper);color:var(--ink);cursor:pointer;
+  }
+  .route-bar button.primary{
+    border-color:var(--ink);background:var(--ink);color:#fff;
+  }
   .filter-label{
     font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
     color:#6b7a83;margin:8px 0 0;
@@ -65,6 +84,7 @@
   .chip:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
   #map{flex:1 1 auto;min-height:0;position:relative}
   .leaflet-container{background:#DDE6E4;font:inherit}
+  .leaflet-container.picking{cursor:crosshair}
   #basemap-note{
     position:absolute;left:50%;bottom:18px;transform:translateX(-50%);
     z-index:1001;background:var(--ink);color:#fff;
@@ -82,9 +102,6 @@
   }
   .pop .cat .flag{width:8px;height:8px;border-radius:2px}
   .pop .name{font-size:14.5px;font-weight:800;margin-bottom:3px}
-  .pop .bike{
-    font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:5px;
-  }
   .pop .note{font-size:12.5px;color:#3c4f5a}
   .mk-label{
     background:transparent;border:none;box-shadow:none;
@@ -94,11 +111,11 @@
   }
   .mk-label::before{display:none}
   .lowzoom .mk-label{display:none}
-  .you-label{
+  .pick-label{
     background:var(--ink);color:#fff;border:none;border-radius:3px;
     font-size:11px;font-weight:700;padding:3px 6px;box-shadow:none;
   }
-  .you-label::before{display:none}
+  .pick-label::before{display:none}
   @media (prefers-reduced-motion: reduce){
     .chip,.bike-btn{transition:none}
   }
@@ -108,7 +125,14 @@
 <header>
   <div class="title-row">
     <h1>Marseille, tes lieux <span class="count" id="count"></span></h1>
-    <button type="button" class="bike-btn" id="bikeBtn" aria-pressed="false">Temps à vélo</button>
+    <button type="button" class="bike-btn" id="bikeBtn" aria-pressed="false">Itinéraire vélo</button>
+  </div>
+  <div class="route-bar" id="routeBar" role="status">
+    <div class="meta" id="routeMeta"></div>
+    <div class="actions">
+      <button type="button" id="gpsBtn" class="primary">Ma position</button>
+      <button type="button" id="clearRouteBtn">Effacer</button>
+    </div>
   </div>
   <div class="filter-label">Catégories</div>
   <div class="chips" id="chips" role="group" aria-label="Filtrer par catégorie"></div>
@@ -182,26 +206,10 @@ const PLACES = [
   {n:"Piscine Pointe Rouge", c:"sport", a:8, lat:43.2417337, lng:5.3636549, note:"Municipale face au port de la Pointe Rouge, propre et bien surveillée."}
 ];
 
+const OSRM = 'https://router.project-osrm.org/route/v1/cycling';
+
 function arrLabel(a){
   return a === 1 ? '1er' : a + 'e';
-}
-
-function haversineKm(lat1, lng1, lat2, lng2){
-  const R = 6371;
-  const toRad = d => d * Math.PI / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLng = toRad(lng2 - lng1);
-  const a = Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(a));
-}
-
-// Estimation urbaine : détours ~35 %, ~14 km/h en moyenne
-function bikeEstimate(from, to){
-  const straight = haversineKm(from.lat, from.lng, to.lat, to.lng);
-  const road = straight * 1.35;
-  const mins = Math.max(1, Math.round(road / 14 * 60));
-  return {km: road, mins};
 }
 
 function formatMins(mins){
@@ -215,10 +223,18 @@ function formatKm(km){
   return (Math.round(km * 10) / 10).toString().replace('.', ',') + ' km';
 }
 
+function popupHtml(p){
+  const color = CATS[p.c].color;
+  return `<div class="pop">
+      <div class="cat"><span class="flag" style="background:${color}"></span>${CATS[p.c].label} · ${arrLabel(p.a)}</div>
+      <div class="name">${p.n}</div>
+      <div class="note">${p.note}</div>
+    </div>`;
+}
+
 const map = L.map('map', {zoomControl:true, attributionControl:true});
 map.attributionControl.setPrefix(false);
 
-// ---- Fond de carte : cascade de fournisseurs de tuiles.
 const PROVIDERS = [
   {url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attr:'© OpenStreetMap'},
   {url:'https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png', attr:'© OpenStreetMap · Wikimedia'},
@@ -262,50 +278,36 @@ const ARRONDissements = [...new Set(PLACES.map(p => p.a))].sort((a, b) => a - b)
 const activeCats = new Set(Object.keys(CATS));
 const activeArrs = new Set(ARRONDissements);
 const markers = [];
-let userPos = null;
-let userMarker = null;
 
-function popupHtml(p, bike){
-  const color = CATS[p.c].color;
-  const bikeLine = bike
-    ? `<div class="bike">${formatMins(bike.mins)} à vélo · ${formatKm(bike.km)}</div>`
-    : '';
-  return `<div class="pop">
-      <div class="cat"><span class="flag" style="background:${color}"></span>${CATS[p.c].label} · ${arrLabel(p.a)}</div>
-      <div class="name">${p.n}</div>
-      ${bikeLine}
-      <div class="note">${p.note}</div>
-    </div>`;
-}
+let routeMode = false;
+let picks = []; // [{lat,lng,label,marker?}]
+let pickMarkers = [];
+let routeLine = null;
+let routeReq = 0;
 
-function labelText(p, bike){
-  return bike ? `${p.n} · ${formatMins(bike.mins)}` : p.n;
-}
-
-function bikeFor(p){
-  return userPos ? bikeEstimate(userPos, p) : null;
-}
+const bikeBtn = document.getElementById('bikeBtn');
+const routeBar = document.getElementById('routeBar');
+const routeMeta = document.getElementById('routeMeta');
+const clearRouteBtn = document.getElementById('clearRouteBtn');
+const gpsBtn = document.getElementById('gpsBtn');
 
 PLACES.forEach(p => {
   const color = CATS[p.c].color;
   const m = L.circleMarker([p.lat, p.lng], {
     radius:8, color:'#fff', weight:2, fillColor:color, fillOpacity:.95
   });
-  m.bindPopup(popupHtml(p, null));
+  m.bindPopup(popupHtml(p));
   m.bindTooltip(p.n, {permanent:true, direction:'right', offset:[9,0], className:'mk-label'});
   m._place = p;
+  m.on('click', e => {
+    if(!routeMode) return;
+    L.DomEvent.stopPropagation(e);
+    m.closePopup();
+    addPick({lat:p.lat, lng:p.lng, label:p.n});
+  });
   m.addTo(map);
   markers.push(m);
 });
-
-function updateBikeLabels(){
-  markers.forEach(m => {
-    const p = m._place;
-    const bike = bikeFor(p);
-    m.setPopupContent(popupHtml(p, bike));
-    m.setTooltipContent(labelText(p, bike));
-  });
-}
 
 function updateLabels(){
   document.getElementById('map').classList.toggle('lowzoom', map.getZoom() < 13);
@@ -316,7 +318,7 @@ function isVisible(p){
   return activeCats.has(p.c) && activeArrs.has(p.a);
 }
 
-function refresh(){
+function refresh(fit = true){
   markers.forEach(m => {
     const show = isVisible(m._place);
     if(show && !map.hasLayer(m)) m.addTo(map);
@@ -324,10 +326,8 @@ function refresh(){
   });
   const visible = markers.filter(m => isVisible(m._place));
   document.getElementById('count').textContent = visible.length + ' lieux';
-  if(visible.length){
-    const layers = visible.slice();
-    if(userMarker && map.hasLayer(userMarker)) layers.push(userMarker);
-    map.fitBounds(L.featureGroup(layers).getBounds().pad(0.12));
+  if(fit && visible.length && !routeLine){
+    map.fitBounds(L.featureGroup(visible).getBounds().pad(0.12));
   }
   document.querySelectorAll('.chip[data-cat]').forEach(ch => {
     ch.classList.toggle('off', !activeCats.has(ch.dataset.cat));
@@ -397,61 +397,158 @@ ARRONDissements.forEach(a => {
   arrChips.appendChild(b);
 });
 
-const bikeBtn = document.getElementById('bikeBtn');
-
-function clearUserPosition(){
-  userPos = null;
-  if(userMarker){
-    map.removeLayer(userMarker);
-    userMarker = null;
-  }
-  bikeBtn.classList.remove('on');
-  bikeBtn.setAttribute('aria-pressed', 'false');
-  bikeBtn.textContent = 'Temps à vélo';
-  updateBikeLabels();
+function setRouteMeta(html){
+  routeMeta.innerHTML = html;
 }
 
-function setUserPosition(lat, lng){
-  userPos = {lat, lng};
-  if(userMarker) map.removeLayer(userMarker);
-  userMarker = L.circleMarker([lat, lng], {
-    radius:9, color:'#fff', weight:3, fillColor:'#14303F', fillOpacity:1
+function clearPicksVisual(){
+  pickMarkers.forEach(m => map.removeLayer(m));
+  pickMarkers = [];
+  if(routeLine){
+    map.removeLayer(routeLine);
+    routeLine = null;
+  }
+}
+
+function clearRoute(){
+  picks = [];
+  clearPicksVisual();
+  if(routeMode){
+    setRouteMeta('<strong>Clique 2 points</strong><div class="sub">Lieu ou n’importe où sur la carte</div>');
+  } else {
+    setRouteMeta('');
+  }
+}
+
+function drawPickMarkers(){
+  pickMarkers.forEach(m => map.removeLayer(m));
+  pickMarkers = picks.map((p, i) => {
+    const m = L.circleMarker([p.lat, p.lng], {
+      radius:10, color:'#fff', weight:3, fillColor:'#14303F', fillOpacity:1
+    });
+    m.bindTooltip(i === 0 ? 'A' : 'B', {
+      permanent:true, direction:'top', offset:[0,-12], className:'pick-label'
+    });
+    m.addTo(map);
+    return m;
   });
-  userMarker.bindTooltip('Toi', {permanent:true, direction:'top', offset:[0,-10], className:'you-label'});
-  userMarker.addTo(map);
-  bikeBtn.classList.add('on');
-  bikeBtn.setAttribute('aria-pressed', 'true');
-  bikeBtn.textContent = 'Arrêter le vélo';
-  updateBikeLabels();
-  refresh();
 }
 
-bikeBtn.onclick = () => {
-  if(userPos){
-    clearUserPosition();
-    refresh();
-    return;
+async function fetchBikeRoute(a, b){
+  const url = `${OSRM}/${a.lng},${a.lat};${b.lng},${b.lat}?overview=full&geometries=geojson`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  const data = await res.json();
+  if(data.code !== 'Ok' || !data.routes?.length) throw new Error(data.code || 'no route');
+  const r = data.routes[0];
+  return {
+    mins: Math.max(1, Math.round(r.duration / 60)),
+    km: r.distance / 1000,
+    coords: r.geometry.coordinates.map(([lng, lat]) => [lat, lng])
+  };
+}
+
+async function maybeRoute(){
+  if(picks.length < 2) return;
+  const a = picks[0], b = picks[1];
+  const req = ++routeReq;
+  setRouteMeta(`<strong>${a.label} → ${b.label}</strong><div class="sub">Calcul du trajet vélo…</div>`);
+  try{
+    const route = await fetchBikeRoute(a, b);
+    if(req !== routeReq) return;
+    if(routeLine) map.removeLayer(routeLine);
+    routeLine = L.polyline(route.coords, {
+      color:'#0E7C86', weight:5, opacity:.9, lineJoin:'round', lineCap:'round'
+    }).addTo(map);
+    map.fitBounds(routeLine.getBounds().pad(0.15));
+    setRouteMeta(
+      `<strong>${formatMins(route.mins)} à vélo · ${formatKm(route.km)}</strong>` +
+      `<div class="sub">${a.label} → ${b.label}</div>`
+    );
+  } catch(err){
+    if(req !== routeReq) return;
+    setRouteMeta(
+      `<strong>Trajet introuvable</strong>` +
+      `<div class="sub">${a.label} → ${b.label} — réessaie avec d’autres points</div>`
+    );
   }
+}
+
+function addPick(point){
+  if(!routeMode) return;
+  // Nouveau trajet si on a déjà A+B
+  if(picks.length >= 2){
+    picks = [];
+    clearPicksVisual();
+  }
+  picks.push(point);
+  drawPickMarkers();
+  if(picks.length === 1){
+    setRouteMeta(`<strong>Départ : ${point.label}</strong><div class="sub">Clique l’arrivée</div>`);
+  } else {
+    maybeRoute();
+  }
+}
+
+function setRouteMode(on){
+  routeMode = on;
+  bikeBtn.classList.toggle('on', on);
+  bikeBtn.setAttribute('aria-pressed', String(on));
+  bikeBtn.textContent = on ? 'Quitter l’itinéraire' : 'Itinéraire vélo';
+  routeBar.classList.toggle('show', on);
+  map.getContainer().classList.toggle('picking', on);
+  if(on){
+    clearRoute();
+  } else {
+    clearRoute();
+    routeBar.classList.remove('show');
+  }
+}
+
+bikeBtn.onclick = () => setRouteMode(!routeMode);
+
+clearRouteBtn.onclick = () => clearRoute();
+
+gpsBtn.onclick = () => {
   if(!navigator.geolocation){
-    bikeBtn.textContent = 'GPS indisponible';
-    setTimeout(() => { bikeBtn.textContent = 'Temps à vélo'; }, 2200);
+    setRouteMeta('<strong>GPS indisponible</strong><div class="sub">Clique plutôt un point sur la carte</div>');
     return;
   }
-  bikeBtn.disabled = true;
-  bikeBtn.textContent = 'Localisation…';
+  gpsBtn.disabled = true;
+  setRouteMeta('<strong>Localisation…</strong><div class="sub">Autorise l’accès à ta position</div>');
   navigator.geolocation.getCurrentPosition(
     pos => {
-      bikeBtn.disabled = false;
-      setUserPosition(pos.coords.latitude, pos.coords.longitude);
+      gpsBtn.disabled = false;
+      // Remplace le départ s’il existe déjà, sinon ajoute
+      if(picks.length === 1){
+        picks = [];
+        clearPicksVisual();
+      } else if(picks.length >= 2){
+        picks = [];
+        clearPicksVisual();
+      }
+      addPick({
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        label: 'Ma position'
+      });
     },
     () => {
-      bikeBtn.disabled = false;
-      bikeBtn.textContent = 'Position refusée';
-      setTimeout(() => { bikeBtn.textContent = 'Temps à vélo'; }, 2200);
+      gpsBtn.disabled = false;
+      setRouteMeta('<strong>Position refusée</strong><div class="sub">Clique deux points sur la carte</div>');
     },
     {enableHighAccuracy:true, timeout:10000, maximumAge:60000}
   );
 };
+
+map.on('click', e => {
+  if(!routeMode) return;
+  const {lat, lng} = e.latlng;
+  addPick({
+    lat, lng,
+    label: lat.toFixed(4) + ', ' + lng.toFixed(4)
+  });
+});
 
 refresh();
 updateLabels();
