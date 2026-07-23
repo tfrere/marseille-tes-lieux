@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#F6F4EE">
 <title>Marseille — tes lieux</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
@@ -11,9 +12,13 @@
     --paper:#F6F4EE;
     --line:#DCD7CB;
     --route:#0E7C86;
+    --safe-t:env(safe-area-inset-top,0px);
+    --safe-r:env(safe-area-inset-right,0px);
+    --safe-b:env(safe-area-inset-bottom,0px);
+    --safe-l:env(safe-area-inset-left,0px);
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%}
+  html,body{height:100%;touch-action:manipulation}
   body{
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     background:var(--paper);color:var(--ink);
@@ -22,93 +27,106 @@
   #map{position:absolute;inset:0}
   .leaflet-container{background:#DDE6E4;font:inherit;height:100%}
   .leaflet-container.picking{cursor:crosshair}
-  .overlay{
-    position:absolute;z-index:1000;pointer-events:none;
+  .leaflet-control-zoom{margin-top:calc(12px + var(--safe-t)) !important;margin-left:calc(10px + var(--safe-l)) !important}
+  .leaflet-control-attribution{
+    max-width:42vw;font-size:9px !important;line-height:1.2;
+    margin:0 !important;padding:2px 5px !important;
   }
+  .overlay{position:absolute;z-index:1000;pointer-events:none}
   .overlay > *{pointer-events:auto}
+
   .brand{
-    top:12px;left:54px;right:auto;
-    max-width:min(52vw,280px);
+    top:calc(12px + var(--safe-t));
+    left:calc(54px + var(--safe-l));
+    max-width:min(46vw,240px);
   }
   h1{
-    font-size:14px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
-    display:inline-flex;align-items:baseline;gap:8px;flex-wrap:wrap;
-    padding:8px 11px;border-radius:3px;
-    background:rgba(246,244,238,.92);border:1px solid var(--line);
+    font-size:13px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+    display:inline-flex;align-items:baseline;gap:6px;flex-wrap:wrap;
+    padding:7px 10px;border-radius:3px;
+    background:rgba(246,244,238,.94);border:1px solid var(--line);
     backdrop-filter:blur(6px);
+    box-shadow:0 2px 10px rgba(20,48,63,.08);
   }
-  h1 .count{font-weight:500;font-size:12px;letter-spacing:0;text-transform:none;color:#6b7a83}
+  h1 .count{font-weight:500;font-size:11px;letter-spacing:0;text-transform:none;color:#6b7a83}
+
   .filters{
-    top:12px;right:12px;left:auto;
+    top:calc(12px + var(--safe-t));
+    right:calc(12px + var(--safe-r));
+    left:auto;
     display:flex;flex-direction:column;align-items:flex-end;gap:8px;
-    max-width:min(72vw,280px);max-height:calc(100dvh - 24px);
+    max-width:min(70vw,260px);
   }
   .bike-btn{
+    min-height:40px;
     font-size:12px;font-weight:700;line-height:1;
-    padding:8px 11px;border-radius:3px;
+    padding:10px 12px;border-radius:3px;
     border:1px solid var(--ink);background:var(--ink);color:#fff;
     cursor:pointer;user-select:none;white-space:nowrap;
     box-shadow:0 2px 10px rgba(20,48,63,.12);
   }
   .bike-btn:active{transform:scale(.97)}
   .bike-btn.on{background:rgba(246,244,238,.96);color:var(--ink)}
-  .bike-btn:disabled{opacity:.55;cursor:wait}
   .bike-btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  .bike-btn .long{display:inline}.bike-btn .short{display:none}
+
   .chips{
     display:flex;flex-direction:column;align-items:stretch;gap:5px;
     overflow-y:auto;padding:8px;
-    max-height:min(62dvh,520px);
+    max-height:min(58dvh,480px);
     -webkit-overflow-scrolling:touch;scrollbar-width:thin;
-    background:rgba(246,244,238,.92);border:1px solid var(--line);
+    background:rgba(246,244,238,.94);border:1px solid var(--line);
     border-radius:3px;backdrop-filter:blur(6px);
     box-shadow:0 2px 14px rgba(20,48,63,.1);
   }
   .chip{
     display:inline-flex;align-items:center;gap:6px;
-    font-size:12.5px;font-weight:600;line-height:1;
-    padding:7px 10px;border-radius:3px;
+    min-height:36px;
+    font-size:12.5px;font-weight:600;line-height:1.15;
+    padding:8px 10px;border-radius:3px;
     border:1px solid var(--line);background:#fff;color:var(--ink);
-    cursor:pointer;user-select:none;transition:opacity .12s, transform .05s;
-    text-align:left;
+    cursor:pointer;user-select:none;text-align:left;
   }
   .chip:active{transform:scale(.97)}
   .chip .flag{width:9px;height:9px;border-radius:2px;background:var(--fc,#888);flex:0 0 auto}
+  .chip .full{display:inline}.chip .short{display:none}
   .chip.off{opacity:.38}
   .chip.all{border-color:var(--ink)}
   .chip:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
   .route-bar{
-    bottom:18px;left:12px;right:auto;
+    bottom:calc(14px + var(--safe-b));
+    left:calc(12px + var(--safe-l));
+    right:auto;
     display:none;flex-direction:column;gap:8px;
-    width:min(calc(100vw - 24px),320px);
-    padding:10px 12px;border:1px solid var(--line);
-    background:rgba(246,244,238,.94);border-radius:3px;
-    font-size:12.5px;line-height:1.35;
+    width:min(calc(100vw - 24px - var(--safe-l) - var(--safe-r)),320px);
+    padding:11px 12px;border:1px solid var(--line);
+    background:rgba(246,244,238,.96);border-radius:3px;
+    font-size:13px;line-height:1.35;
     backdrop-filter:blur(6px);
     box-shadow:0 2px 14px rgba(20,48,63,.12);
   }
   .route-bar.show{display:flex}
-  .route-bar .meta{min-width:0}
   .route-bar .meta strong{font-weight:800}
-  .route-bar .meta .sub{color:#3c4f5a;margin-top:2px}
-  .route-bar .actions{display:flex;gap:6px;flex-wrap:wrap}
+  .route-bar .meta .sub{color:#3c4f5a;margin-top:2px;font-size:12px}
+  .route-bar .actions{display:flex;gap:6px}
   .route-bar button{
     font:inherit;font-size:12px;font-weight:700;line-height:1;
-    padding:7px 9px;border-radius:3px;border:1px solid var(--line);
-    background:#fff;color:var(--ink);cursor:pointer;
+    min-height:36px;padding:8px 12px;border-radius:3px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;
   }
-  .route-bar button.primary{
-    border-color:var(--ink);background:var(--ink);color:#fff;
-  }
+
   #basemap-note{
-    position:absolute;left:50%;bottom:18px;transform:translateX(-50%);
+    position:absolute;left:50%;bottom:calc(18px + var(--safe-b));transform:translateX(-50%);
     z-index:1001;background:var(--ink);color:#fff;
     font-size:12px;line-height:1.4;padding:9px 13px;border-radius:4px;
     max-width:88%;text-align:center;display:none;pointer-events:none;
   }
+
   .leaflet-popup-content-wrapper{
     border-radius:4px;box-shadow:0 4px 18px rgba(20,48,63,.18);
   }
-  .leaflet-popup-content{margin:12px 14px;line-height:1.4}
+  .leaflet-popup-content{margin:12px 14px;line-height:1.4;max-width:min(72vw,260px)}
   .pop .cat{
     display:inline-flex;align-items:center;gap:5px;
     font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
@@ -117,6 +135,7 @@
   .pop .cat .flag{width:8px;height:8px;border-radius:2px}
   .pop .name{font-size:14.5px;font-weight:800;margin-bottom:3px}
   .pop .note{font-size:12.5px;color:#3c4f5a}
+
   .mk-label{
     background:transparent;border:none;box-shadow:none;
     font-size:11px;font-weight:700;color:var(--ink);
@@ -125,16 +144,70 @@
   }
   .mk-label::before{display:none}
   .lowzoom .mk-label{display:none}
+
   .pick-label{
     background:var(--ink);color:#fff;border:none;border-radius:3px;
     font-size:11px;font-weight:700;padding:3px 6px;box-shadow:none;
   }
   .pick-label::before{display:none}
+
+  .q-label{
+    background:transparent;border:none;box-shadow:none;
+    color:var(--ink);font-size:10px;font-weight:700;letter-spacing:.02em;
+    text-shadow:-1px -1px 0 rgba(246,244,238,.9),1px -1px 0 rgba(246,244,238,.9),
+      -1px 1px 0 rgba(246,244,238,.9),1px 1px 0 rgba(246,244,238,.9);
+    padding:0;white-space:nowrap;
+  }
+  .q-label::before{display:none}
+  .hide-quartiers .q-label{display:none}
+
   .q-tip{
-    background:rgba(20,48,63,.88);color:#fff;border:none;border-radius:3px;
+    background:rgba(20,48,63,.9);color:#fff;border:none;border-radius:3px;
     font-size:11px;font-weight:700;padding:4px 7px;box-shadow:none;
   }
   .q-tip::before{display:none}
+
+  @media (max-width:720px){
+    .brand{
+      left:calc(10px + var(--safe-l));
+      max-width:calc(100vw - 118px - var(--safe-l) - var(--safe-r));
+    }
+    h1{font-size:12px;padding:7px 9px}
+    .filters{
+      top:calc(52px + var(--safe-t));
+      left:calc(10px + var(--safe-l));
+      right:calc(10px + var(--safe-r));
+      max-width:none;
+      align-items:stretch;
+    }
+    .filters-head{
+      display:flex;justify-content:flex-end;
+    }
+    .bike-btn{min-height:38px;padding:9px 11px}
+    .bike-btn .long{display:none}.bike-btn .short{display:inline}
+    .chips{
+      flex-direction:row;align-items:center;
+      overflow-x:auto;overflow-y:hidden;
+      max-height:none;width:100%;
+      padding:6px;gap:6px;
+      scrollbar-width:none;
+    }
+    .chips::-webkit-scrollbar{display:none}
+    .chip{
+      flex:0 0 auto;white-space:nowrap;
+      min-height:38px;padding:8px 11px;
+    }
+    .chip .full{display:none}.chip .short{display:inline}
+    .route-bar{
+      left:calc(10px + var(--safe-l));
+      right:calc(10px + var(--safe-r));
+      width:auto;
+      bottom:calc(12px + var(--safe-b));
+    }
+    .leaflet-control-zoom{display:none}
+    .leaflet-control-attribution{max-width:55vw}
+  }
+
   @media (prefers-reduced-motion: reduce){
     .chip,.bike-btn{transition:none}
   }
@@ -146,13 +219,16 @@
   <h1>Marseille, tes lieux <span class="count" id="count"></span></h1>
 </div>
 <div class="overlay filters">
-  <button type="button" class="bike-btn" id="bikeBtn" aria-pressed="false">Itinéraire vélo</button>
+  <div class="filters-head">
+    <button type="button" class="bike-btn" id="bikeBtn" aria-pressed="false">
+      <span class="long">Itinéraire vélo</span><span class="short">Vélo</span>
+    </button>
+  </div>
   <div class="chips" id="chips" role="group" aria-label="Filtrer par catégorie"></div>
 </div>
 <div class="overlay route-bar" id="routeBar" role="status">
   <div class="meta" id="routeMeta"></div>
   <div class="actions">
-    <button type="button" id="gpsBtn" class="primary">Ma position</button>
     <button type="button" id="clearRouteBtn">Effacer</button>
   </div>
 </div>
@@ -161,47 +237,36 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 const CATS = {
-  ateliers:  {label:"Ateliers & fablabs", color:"#B33A1E"},
-  ceramique: {label:"Céramique",          color:"#C4863B"},
-  cinema:    {label:"Ciné art & essai",   color:"#5B3E96"},
-  culture:   {label:"Culture & idées",    color:"#1F6FB2"},
-  alim:      {label:"Alimentation",       color:"#3E7C3A"},
-  mer:       {label:"Mer & voile",        color:"#0E7C86"},
-  sport:     {label:"Sport",              color:"#C1355F"}
+  ateliers:  {label:"Ateliers & fablabs", short:"Ateliers", color:"#B33A1E"},
+  ceramique: {label:"Céramique",          short:"Céramique", color:"#C4863B"},
+  cinema:    {label:"Ciné art & essai",   short:"Ciné", color:"#5B3E96"},
+  culture:   {label:"Culture & idées",    short:"Culture", color:"#1F6FB2"},
+  alim:      {label:"Alimentation",       short:"Alim", color:"#3E7C3A"},
+  mer:       {label:"Mer & voile",        short:"Mer", color:"#0E7C86"},
+  sport:     {label:"Sport",              short:"Sport", color:"#C1355F"}
 };
 
 const PLACES = [
-  // Ateliers & fablabs
   {n:"ICI Marseille", c:"ateliers", a:15, lat:43.3264122, lng:5.3658537, note:"3 500 m² d'ateliers partagés : métal, bois, robotique. Le candidat n°1 pour ton adhésion. 77 rue de Lyon, 15e."},
   {n:"Make it Marseille", c:"ateliers", a:6, lat:43.2860794, lng:5.3769173, note:"Makerspace 24/7 : laser, CNC, plotter de découpe, impression 3D. 108 rue Breteuil, 6e."},
   {n:"FabLab Centrale Marseille", c:"ateliers", a:13, lat:43.3411193, lng:5.4381978, note:"OpenLabs mercredi et jeudi après-midi, ambiance étudiante, électronique. Château-Gombert, 13e."},
   {n:"La Fabulerie", c:"ateliers", a:1, lat:43.2969701, lng:5.3809283, note:"Tiers-lieu design et médiation numérique, café sympa pour bosser. 10 bd Garibaldi, 1er."},
   {n:"Coutellerie du Panier", c:"ateliers", a:2, lat:43.2994168, lng:5.3681319, note:"Stages de fabrication de couteau, du dessin à la trempe. 22 rue du Panier, 2e."},
-
-  // Céramique
   {n:"Clay Atelier", c:"ceramique", a:2, lat:43.2974179, lng:5.372566, note:"Accès libre + cours à deux pas du Vieux-Port. Nocturne le mardi. 2 rue du Chevalier Roze, 2e."},
   {n:"Les Dégourdies", c:"ceramique", a:3, lat:43.3124892, lng:5.3879643, note:"Belle de Mai. Stages émaux et cyanotype sur céramique. 3 rue Raymondino, 3e."},
-
-  // Ciné art & essai
   {n:"Vidéodrome 2", c:"cinema", a:6, lat:43.2939644, lng:5.3835288, note:"Ciné-club et bar au Cours Julien, très porté documentaire, séances à prix libre."},
   {n:"Les Variétés", c:"cinema", a:1, lat:43.2975076, lng:5.3797689, note:"L'art et essai de référence en centre-ville, belle programmation VO. Avec bar."},
   {n:"La Baleine", c:"cinema", a:6, lat:43.2936388, lng:5.3836713, note:"Ciné-bistrot au Cours Julien, à 50 m du Vidéodrome. Cuisine provençale au comptoir."},
   {n:"Le Gyptis", c:"cinema", a:3, lat:43.3125, lng:5.3844444, note:"Belle de Mai, géré par la Friche. Ciné-débats et conférences. 136 rue Loubon, 3e."},
   {n:"Le César", c:"cinema", a:6, lat:43.2862748, lng:5.3832277, note:"Art et essai historique à Castellane, VO sous-titrée."},
-
-  // Culture & idées
   {n:"Mucem", c:"culture", a:2, lat:43.2966941, lng:5.3610825, note:"Au-delà des expos, guette les cycles de débats et conférences. Toit-terrasse sur la rade."},
   {n:"Friche la Belle de Mai", c:"culture", a:3, lat:43.310172, lng:5.3905693, note:"Expos, résidences, concerts. L'écosystème art et tech de la ville. 41 rue Jobin, 3e."},
   {n:"Coco Velten", c:"culture", a:1, lat:43.3016586, lng:5.3767013, note:"Lieu hybride et solidaire, concerts et cantine à prix libre. Rue Bernard du Bois, 1er."},
   {n:"Cité Radieuse (Le Corbusier)", c:"culture", a:8, lat:43.2613455, lng:5.3964892, note:"L'Unité d'Habitation, toit-terrasse ouvert au public. Pèlerinage de design engineer. 280 bd Michelet, 8e."},
   {n:"[mac] Musée d'art contemporain", c:"culture", a:8, lat:43.2502578, lng:5.3897089, note:"Fraîchement rénové, collection permanente gratuite. 69 av. d'Haïfa, 8e."},
   {n:"Parc Borély", c:"culture", a:8, lat:43.260334, lng:5.3823007, note:"Le grand parc du sud, jardin botanique, parfait à vélo depuis la mer."},
-
-  // Alimentation
   {n:"La Cité de l'Agriculture", c:"alim", a:1, lat:43.2995428, lng:5.3858187, note:"Agriculture urbaine et alimentation durable, avec cantine locale. Ton fil Capitulaire 2050. 6 sq. Stalingrad, 1er."},
   {n:"Les Paniers Marseillais", c:"alim", a:1, lat:43.3028712, lng:5.3867365, note:"LE réseau AMAP : une trentaine de groupes bio partout en ville. Point de départ pour trouver la tienne. 28 bd National, 1er."},
-
-  // Mer & voile
   {n:"Yachting Club Pointe Rouge", c:"mer", a:8, lat:43.2445742, lng:5.3679818, note:"Le gros club historique du port, école de voile et vue sur la rade."},
   {n:"ASPTT Marseille Voile", c:"mer", a:8, lat:43.2446718, lng:5.3687678, note:"Stages dériveur et windsurf très bien notés, esprit club convivial."},
   {n:"Société Nautique de Marseille", c:"mer", a:7, lat:43.2932276, lng:5.369931, note:"La Nautique : club historique sur ponton flottant, quai de Rive Neuve. École de voile et régates habitables."},
@@ -210,8 +275,6 @@ const PLACES = [
   {n:"Marina Olympique Roucas Blanc", c:"mer", a:7, lat:43.2662315, lng:5.367694, note:"La base nautique municipale héritée des JO 2024, sur la Corniche. Voile légère et pôle course."},
   {n:"1 2 3 Kayak", c:"mer", a:8, lat:43.2452902, lng:5.3728581, note:"Location à la plage de Montredon, départ idéal vers les Goudes."},
   {n:"Callelongue", c:"mer", a:8, lat:43.212848, lng:5.354413, note:"Le bout du monde : dernière calanque accessible en bus, départ des sentiers de Marseilleveyre."},
-
-  // Sport
   {n:"Flow Studio (yoga)", c:"sport", a:1, lat:43.2927954, lng:5.3784761, note:"Vinyasa, kundalini, hatha, pilates. Rue Saint-Ferréol, 1er. Très bien noté."},
   {n:"Bloom Yoga Studio", c:"sport", a:6, lat:43.2878091, lng:5.3764317, note:"Studio cosy avec café, yoga et pilates. 81 rue Saint-Jacques, 6e."},
   {n:"Marseille Boxing Club", c:"sport", a:14, lat:43.3314773, lng:5.3827282, note:"Le club référence, du débutant au pro, avec sauna et espace détente. 14e."},
@@ -227,18 +290,15 @@ const OSRM = 'https://router.project-osrm.org/route/v1/cycling';
 function arrLabel(a){
   return a === 1 ? '1er' : a + 'e';
 }
-
 function formatMins(mins){
   if(mins < 60) return mins + ' min';
   const h = Math.floor(mins / 60);
   const m = mins % 60;
   return m ? h + ' h ' + String(m).padStart(2, '0') : h + ' h';
 }
-
 function formatKm(km){
   return (Math.round(km * 10) / 10).toString().replace('.', ',') + ' km';
 }
-
 function popupHtml(p){
   const color = CATS[p.c].color;
   return `<div class="pop">
@@ -248,8 +308,14 @@ function popupHtml(p){
     </div>`;
 }
 
-const map = L.map('map', {zoomControl:true, attributionControl:true});
+const map = L.map('map', {
+  zoomControl:true,
+  attributionControl:true,
+  tapTolerance:25
+});
 map.attributionControl.setPrefix(false);
+map.createPane('quartiers');
+map.getPane('quartiers').style.zIndex = 350;
 
 const PROVIDERS = [
   {url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attr:'© OpenStreetMap'},
@@ -293,17 +359,33 @@ tryProvider(0);
 const activeCats = new Set(Object.keys(CATS));
 const markers = [];
 let quartiersLayer = null;
+let quartierLabels = [];
+
+let routeMode = false;
+let picks = [];
+let pickMarkers = [];
+let routeLine = null;
+let routeReq = 0;
+
+const bikeBtn = document.getElementById('bikeBtn');
+const routeBar = document.getElementById('routeBar');
+const routeMeta = document.getElementById('routeMeta');
+const clearRouteBtn = document.getElementById('clearRouteBtn');
 
 fetch('quartiers.geojson')
-  .then(r => r.json())
+  .then(r => {
+    if(!r.ok) throw new Error('geo');
+    return r.json();
+  })
   .then(data => {
     quartiersLayer = L.geoJSON(data, {
+      pane:'quartiers',
       style: {
         color:'#14303F',
-        weight:1,
-        opacity:.2,
+        weight:1.5,
+        opacity:.55,
         fillColor:'#14303F',
-        fillOpacity:.04
+        fillOpacity:.08
       },
       onEachFeature(feature, layer){
         const name = feature.properties.n;
@@ -318,30 +400,40 @@ fetch('quartiers.geojson')
           L.DomEvent.stopPropagation(e);
           addPick({lat:e.latlng.lat, lng:e.latlng.lng, label:name});
         });
+        const c = layer.getBounds().getCenter();
+        const tip = L.tooltip({
+          permanent:true,
+          direction:'center',
+          className:'q-label',
+          pane:'quartiers'
+        })
+          .setContent(name)
+          .setLatLng(c);
+        quartierLabels.push(tip);
       }
     }).addTo(map);
-    quartiersLayer.bringToBack();
+    updateQuartierLabels();
   })
   .catch(() => {});
 
-let routeMode = false;
-let picks = []; // [{lat,lng,label,marker?}]
-let pickMarkers = [];
-let routeLine = null;
-let routeReq = 0;
-
-const bikeBtn = document.getElementById('bikeBtn');
-const routeBar = document.getElementById('routeBar');
-const routeMeta = document.getElementById('routeMeta');
-const clearRouteBtn = document.getElementById('clearRouteBtn');
-const gpsBtn = document.getElementById('gpsBtn');
+function updateQuartierLabels(){
+  const show = map.getZoom() >= 13;
+  document.getElementById('map').classList.toggle('hide-quartiers', !show);
+  quartierLabels.forEach(tip => {
+    if(show){
+      if(!tip._map) tip.addTo(map);
+    } else if(tip._map){
+      map.removeLayer(tip);
+    }
+  });
+}
 
 PLACES.forEach(p => {
   const color = CATS[p.c].color;
   const m = L.circleMarker([p.lat, p.lng], {
-    radius:8, color:'#fff', weight:2, fillColor:color, fillOpacity:.95
+    radius:9, color:'#fff', weight:2, fillColor:color, fillOpacity:.95
   });
-  m.bindPopup(popupHtml(p));
+  m.bindPopup(popupHtml(p), {maxWidth:280, autoPanPadding:[48, 96]});
   m.bindTooltip(p.n, {permanent:true, direction:'right', offset:[9,0], className:'mk-label'});
   m._place = p;
   m.on('click', e => {
@@ -356,6 +448,7 @@ PLACES.forEach(p => {
 
 function updateLabels(){
   document.getElementById('map').classList.toggle('lowzoom', map.getZoom() < 13);
+  updateQuartierLabels();
 }
 map.on('zoomend', updateLabels);
 
@@ -394,7 +487,7 @@ function toggleSet(set, key, allKeys){
 const chips = document.getElementById('chips');
 const allChip = document.createElement('button');
 allChip.className = 'chip all';
-allChip.textContent = 'Tout';
+allChip.innerHTML = '<span class="full">Tout</span><span class="short">Tout</span>';
 allChip.onclick = () => {
   Object.keys(CATS).forEach(k => activeCats.add(k));
   refresh();
@@ -406,7 +499,7 @@ Object.entries(CATS).forEach(([key, cat]) => {
   b.className = 'chip';
   b.dataset.cat = key;
   b.setAttribute('aria-pressed','true');
-  b.innerHTML = `<span class="flag" style="--fc:${cat.color};background:${cat.color}"></span>${cat.label}`;
+  b.innerHTML = `<span class="flag" style="--fc:${cat.color};background:${cat.color}"></span><span class="full">${cat.label}</span><span class="short">${cat.short}</span>`;
   b.onclick = () => {
     toggleSet(activeCats, key, Object.keys(CATS));
     refresh();
@@ -431,7 +524,7 @@ function clearRoute(){
   picks = [];
   clearPicksVisual();
   if(routeMode){
-    setRouteMeta('<strong>Clique 2 points</strong><div class="sub">Lieu ou n’importe où sur la carte</div>');
+    setRouteMeta('<strong>Tape 2 points</strong><div class="sub">Un lieu ou n’importe où sur la carte</div>');
   } else {
     setRouteMeta('');
   }
@@ -441,7 +534,7 @@ function drawPickMarkers(){
   pickMarkers.forEach(m => map.removeLayer(m));
   pickMarkers = picks.map((p, i) => {
     const m = L.circleMarker([p.lat, p.lng], {
-      radius:10, color:'#fff', weight:3, fillColor:'#14303F', fillOpacity:1
+      radius:11, color:'#fff', weight:3, fillColor:'#14303F', fillOpacity:1
     });
     m.bindTooltip(i === 0 ? 'A' : 'B', {
       permanent:true, direction:'top', offset:[0,-12], className:'pick-label'
@@ -475,9 +568,9 @@ async function maybeRoute(){
     if(req !== routeReq) return;
     if(routeLine) map.removeLayer(routeLine);
     routeLine = L.polyline(route.coords, {
-      color:'#0E7C86', weight:5, opacity:.9, lineJoin:'round', lineCap:'round'
+      color:'#0E7C86', weight:5, opacity:.92, lineJoin:'round', lineCap:'round'
     }).addTo(map);
-    map.fitBounds(routeLine.getBounds().pad(0.15));
+    map.fitBounds(routeLine.getBounds().pad(0.18));
     setRouteMeta(
       `<strong>${formatMins(route.mins)} à vélo · ${formatKm(route.km)}</strong>` +
       `<div class="sub">${a.label} → ${b.label}</div>`
@@ -486,14 +579,13 @@ async function maybeRoute(){
     if(req !== routeReq) return;
     setRouteMeta(
       `<strong>Trajet introuvable</strong>` +
-      `<div class="sub">${a.label} → ${b.label} — réessaie avec d’autres points</div>`
+      `<div class="sub">${a.label} → ${b.label}</div>`
     );
   }
 }
 
 function addPick(point){
   if(!routeMode) return;
-  // Nouveau trajet si on a déjà A+B
   if(picks.length >= 2){
     picks = [];
     clearPicksVisual();
@@ -501,7 +593,7 @@ function addPick(point){
   picks.push(point);
   drawPickMarkers();
   if(picks.length === 1){
-    setRouteMeta(`<strong>Départ : ${point.label}</strong><div class="sub">Clique l’arrivée</div>`);
+    setRouteMeta(`<strong>Départ : ${point.label}</strong><div class="sub">Tape l’arrivée</div>`);
   } else {
     maybeRoute();
   }
@@ -511,62 +603,25 @@ function setRouteMode(on){
   routeMode = on;
   bikeBtn.classList.toggle('on', on);
   bikeBtn.setAttribute('aria-pressed', String(on));
-  bikeBtn.textContent = on ? 'Quitter l’itinéraire' : 'Itinéraire vélo';
+  bikeBtn.innerHTML = on
+    ? '<span class="long">Quitter l’itinéraire</span><span class="short">Stop</span>'
+    : '<span class="long">Itinéraire vélo</span><span class="short">Vélo</span>';
   routeBar.classList.toggle('show', on);
   map.getContainer().classList.toggle('picking', on);
-  if(on){
-    clearRoute();
-  } else {
-    clearRoute();
-    routeBar.classList.remove('show');
-  }
+  clearRoute();
+  if(!on) routeBar.classList.remove('show');
 }
 
 bikeBtn.onclick = () => setRouteMode(!routeMode);
-
 clearRouteBtn.onclick = () => clearRoute();
-
-gpsBtn.onclick = () => {
-  if(!navigator.geolocation){
-    setRouteMeta('<strong>GPS indisponible</strong><div class="sub">Clique plutôt un point sur la carte</div>');
-    return;
-  }
-  gpsBtn.disabled = true;
-  setRouteMeta('<strong>Localisation…</strong><div class="sub">Autorise l’accès à ta position</div>');
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      gpsBtn.disabled = false;
-      // Remplace le départ s’il existe déjà, sinon ajoute
-      if(picks.length === 1){
-        picks = [];
-        clearPicksVisual();
-      } else if(picks.length >= 2){
-        picks = [];
-        clearPicksVisual();
-      }
-      addPick({
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude,
-        label: 'Ma position'
-      });
-    },
-    () => {
-      gpsBtn.disabled = false;
-      setRouteMeta('<strong>Position refusée</strong><div class="sub">Clique deux points sur la carte</div>');
-    },
-    {enableHighAccuracy:true, timeout:10000, maximumAge:60000}
-  );
-};
 
 map.on('click', e => {
   if(!routeMode) return;
   const {lat, lng} = e.latlng;
-  addPick({
-    lat, lng,
-    label: lat.toFixed(4) + ', ' + lng.toFixed(4)
-  });
+  addPick({lat, lng, label: lat.toFixed(4) + ', ' + lng.toFixed(4)});
 });
 
+window.addEventListener('resize', () => map.invalidateSize());
 refresh();
 updateLabels();
 </script>
