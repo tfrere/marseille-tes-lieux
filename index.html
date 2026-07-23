@@ -222,8 +222,8 @@ const CATS = {
   ceramique: {label:"Céramique",          short:"Céramique", color:"#C4863B"},
   cinema:    {label:"Ciné art & essai",   short:"Ciné", color:"#5B3E96"},
   culture:   {label:"Culture & idées",    short:"Culture", color:"#1F6FB2"},
-  alim:      {label:"Alimentation",       short:"Alim", color:"#3E7C3A"},
-  amap:      {label:"AMAP & coopés",      short:"AMAP", color:"#6B8F2C"},
+  coop:      {label:"Coopérative",        short:"Coop", color:"#3E7C3A"},
+  amap:      {label:"AMAP",               short:"AMAP", color:"#6B8F2C"},
   mer:       {label:"Mer & voile",        short:"Mer", color:"#0E7C86"},
   sport:     {label:"Sport",              short:"Sport", color:"#C1355F"}
 };
@@ -247,11 +247,11 @@ const PLACES = [
   {n:"Cité Radieuse (Le Corbusier)", c:"culture", a:8, lat:43.2613455, lng:5.3964892, note:"L'Unité d'Habitation, toit-terrasse ouvert au public. Pèlerinage de design engineer. 280 bd Michelet, 8e."},
   {n:"[mac] Musée d'art contemporain", c:"culture", a:8, lat:43.2502578, lng:5.3897089, note:"Fraîchement rénové, collection permanente gratuite. 69 av. d'Haïfa, 8e."},
   {n:"Parc Borély", c:"culture", a:8, lat:43.260334, lng:5.3823007, note:"Le grand parc du sud, jardin botanique, parfait à vélo depuis la mer."},
-  {n:"La Cité de l'Agriculture", c:"alim", a:1, lat:43.2995428, lng:5.3858187, note:"Agriculture urbaine et alimentation durable, avec cantine locale. Ton fil Capitulaire 2050. 6 sq. Stalingrad, 1er."},
+  // Coopérative (modèle Graoucop / La Louve)
+  {n:"Super Cafoutch", c:"coop", a:2, lat:43.2984897, lng:5.3717038, note:"LE supermarché coopératif marseillais (type Graoucop / La Louve) : parts sociales + ~3 h / mois, et tu fais tes courses. Local, bio, marges basses. 16 rue du Chevalier Roze, 2e."},
 
-  // AMAP & coopératives
+  // AMAP
   {n:"Les Paniers Marseillais", c:"amap", a:1, lat:43.3028712, lng:5.3867365, note:"Le réseau des paniers de quartier : ~32 AMAP à Marseille et alentours. Point de départ pour trouver la tienne. 28 bd National, 1er."},
-  {n:"Super Cafoutch", c:"amap", a:2, lat:43.2984897, lng:5.3717038, note:"Supermarché coopératif et participatif : tu es client·e et co-gestionnaire (~3 h / mois). Local, bio, marges basses. 16 rue du Chevalier Roze, 2e."},
   {n:"AMAP Belsunce", c:"amap", a:1, lat:43.2993692, lng:5.3775058, note:"Distribution de légumes au Grain de sable. Mardi 18h30–19h30. 34 rue du Baignoir, 1er."},
   {n:"AMAP des Réformés", c:"amap", a:1, lat:43.2996555, lng:5.3860854, note:"Légumes bio, viande, pain, fromage. Distribution le mardi soir à la Casa Consolat. 1 rue Consolat, 1er."},
   {n:"AMAP Bonneveine", c:"amap", a:8, lat:43.2461503, lng:5.3872020, note:"Panier de quartier côté sud. Maison pour Tous de Bonneveine, 70 av. André Zénatti, 8e."},
