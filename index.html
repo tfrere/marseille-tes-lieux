@@ -23,13 +23,31 @@
     border-bottom:1px solid var(--line);
     flex:0 0 auto;background:var(--paper);z-index:1000;
   }
+  .title-row{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+  }
   h1{
     font-size:15px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
-    display:flex;align-items:baseline;gap:8px;
+    display:flex;align-items:baseline;gap:8px;min-width:0;
   }
   h1 .count{font-weight:500;font-size:12px;letter-spacing:0;text-transform:none;color:#6b7a83}
+  .bike-btn{
+    flex:0 0 auto;
+    font-size:12px;font-weight:700;line-height:1;
+    padding:7px 10px;border-radius:3px;
+    border:1px solid var(--ink);background:var(--ink);color:#fff;
+    cursor:pointer;user-select:none;white-space:nowrap;
+  }
+  .bike-btn:active{transform:scale(.97)}
+  .bike-btn.on{background:#fff;color:var(--ink)}
+  .bike-btn:disabled{opacity:.55;cursor:wait}
+  .bike-btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  .filter-label{
+    font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    color:#6b7a83;margin:8px 0 0;
+  }
   .chips{
-    display:flex;gap:6px;overflow-x:auto;padding:8px 0 2px;
+    display:flex;gap:6px;overflow-x:auto;padding:6px 0 2px;
     -webkit-overflow-scrolling:touch;scrollbar-width:none;
   }
   .chips::-webkit-scrollbar{display:none}
@@ -45,7 +63,7 @@
   .chip.off{opacity:.38}
   .chip.all{border-color:var(--ink)}
   .chip:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
-  #map{flex:1 1 auto;min-height:0}
+  #map{flex:1 1 auto;min-height:0;position:relative}
   .leaflet-container{background:#DDE6E4;font:inherit}
   #basemap-note{
     position:absolute;left:50%;bottom:18px;transform:translateX(-50%);
@@ -64,6 +82,9 @@
   }
   .pop .cat .flag{width:8px;height:8px;border-radius:2px}
   .pop .name{font-size:14.5px;font-weight:800;margin-bottom:3px}
+  .pop .bike{
+    font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:5px;
+  }
   .pop .note{font-size:12.5px;color:#3c4f5a}
   .mk-label{
     background:transparent;border:none;box-shadow:none;
@@ -73,15 +94,26 @@
   }
   .mk-label::before{display:none}
   .lowzoom .mk-label{display:none}
+  .you-label{
+    background:var(--ink);color:#fff;border:none;border-radius:3px;
+    font-size:11px;font-weight:700;padding:3px 6px;box-shadow:none;
+  }
+  .you-label::before{display:none}
   @media (prefers-reduced-motion: reduce){
-    .chip{transition:none}
+    .chip,.bike-btn{transition:none}
   }
 </style>
 </head>
 <body>
 <header>
-  <h1>Marseille, tes lieux <span class="count" id="count"></span></h1>
+  <div class="title-row">
+    <h1>Marseille, tes lieux <span class="count" id="count"></span></h1>
+    <button type="button" class="bike-btn" id="bikeBtn" aria-pressed="false">Temps à vélo</button>
+  </div>
+  <div class="filter-label">Catégories</div>
   <div class="chips" id="chips" role="group" aria-label="Filtrer par catégorie"></div>
+  <div class="filter-label">Arrondissements</div>
+  <div class="chips" id="arrChips" role="group" aria-label="Filtrer par arrondissement"></div>
 </header>
 <div id="map"></div>
 <div id="basemap-note">Fond de carte indisponible dans cet aperçu.<br>Télécharge le fichier et ouvre-le dans un navigateur pour l'afficher.</div>
@@ -100,68 +132,100 @@ const CATS = {
 
 const PLACES = [
   // Ateliers & fablabs
-  {n:"ICI Marseille", c:"ateliers", lat:43.3264122, lng:5.3658537, note:"3 500 m² d'ateliers partagés : métal, bois, robotique. Le candidat n°1 pour ton adhésion. 77 rue de Lyon, 15e."},
-  {n:"Make it Marseille", c:"ateliers", lat:43.2860794, lng:5.3769173, note:"Makerspace 24/7 : laser, CNC, plotter de découpe, impression 3D. 108 rue Breteuil, 6e."},
-  {n:"FabLab Centrale Marseille", c:"ateliers", lat:43.3411193, lng:5.4381978, note:"OpenLabs mercredi et jeudi après-midi, ambiance étudiante, électronique. Château-Gombert, 13e."},
-  {n:"La Fabulerie", c:"ateliers", lat:43.2969701, lng:5.3809283, note:"Tiers-lieu design et médiation numérique, café sympa pour bosser. 10 bd Garibaldi, 1er."},
-  {n:"Coutellerie du Panier", c:"ateliers", lat:43.2994168, lng:5.3681319, note:"Stages de fabrication de couteau, du dessin à la trempe. 22 rue du Panier, 2e."},
+  {n:"ICI Marseille", c:"ateliers", a:15, lat:43.3264122, lng:5.3658537, note:"3 500 m² d'ateliers partagés : métal, bois, robotique. Le candidat n°1 pour ton adhésion. 77 rue de Lyon, 15e."},
+  {n:"Make it Marseille", c:"ateliers", a:6, lat:43.2860794, lng:5.3769173, note:"Makerspace 24/7 : laser, CNC, plotter de découpe, impression 3D. 108 rue Breteuil, 6e."},
+  {n:"FabLab Centrale Marseille", c:"ateliers", a:13, lat:43.3411193, lng:5.4381978, note:"OpenLabs mercredi et jeudi après-midi, ambiance étudiante, électronique. Château-Gombert, 13e."},
+  {n:"La Fabulerie", c:"ateliers", a:1, lat:43.2969701, lng:5.3809283, note:"Tiers-lieu design et médiation numérique, café sympa pour bosser. 10 bd Garibaldi, 1er."},
+  {n:"Coutellerie du Panier", c:"ateliers", a:2, lat:43.2994168, lng:5.3681319, note:"Stages de fabrication de couteau, du dessin à la trempe. 22 rue du Panier, 2e."},
 
   // Céramique
-  {n:"Clay Atelier", c:"ceramique", lat:43.2974179, lng:5.372566, note:"Accès libre + cours à deux pas du Vieux-Port. Nocturne le mardi. 2 rue du Chevalier Roze, 2e."},
-  {n:"Les Dégourdies", c:"ceramique", lat:43.3124892, lng:5.3879643, note:"Belle de Mai. Stages émaux et cyanotype sur céramique. 3 rue Raymondino, 3e."},
+  {n:"Clay Atelier", c:"ceramique", a:2, lat:43.2974179, lng:5.372566, note:"Accès libre + cours à deux pas du Vieux-Port. Nocturne le mardi. 2 rue du Chevalier Roze, 2e."},
+  {n:"Les Dégourdies", c:"ceramique", a:3, lat:43.3124892, lng:5.3879643, note:"Belle de Mai. Stages émaux et cyanotype sur céramique. 3 rue Raymondino, 3e."},
 
   // Ciné art & essai
-  {n:"Vidéodrome 2", c:"cinema", lat:43.2939644, lng:5.3835288, note:"Ciné-club et bar au Cours Julien, très porté documentaire, séances à prix libre."},
-  {n:"Les Variétés", c:"cinema", lat:43.2975076, lng:5.3797689, note:"L'art et essai de référence en centre-ville, belle programmation VO. Avec bar."},
-  {n:"La Baleine", c:"cinema", lat:43.2936388, lng:5.3836713, note:"Ciné-bistrot au Cours Julien, à 50 m du Vidéodrome. Cuisine provençale au comptoir."},
-  {n:"Le Gyptis", c:"cinema", lat:43.3125, lng:5.3844444, note:"Belle de Mai, géré par la Friche. Ciné-débats et conférences. 136 rue Loubon, 3e."},
-  {n:"Le César", c:"cinema", lat:43.2862748, lng:5.3832277, note:"Art et essai historique à Castellane, VO sous-titrée."},
+  {n:"Vidéodrome 2", c:"cinema", a:6, lat:43.2939644, lng:5.3835288, note:"Ciné-club et bar au Cours Julien, très porté documentaire, séances à prix libre."},
+  {n:"Les Variétés", c:"cinema", a:1, lat:43.2975076, lng:5.3797689, note:"L'art et essai de référence en centre-ville, belle programmation VO. Avec bar."},
+  {n:"La Baleine", c:"cinema", a:6, lat:43.2936388, lng:5.3836713, note:"Ciné-bistrot au Cours Julien, à 50 m du Vidéodrome. Cuisine provençale au comptoir."},
+  {n:"Le Gyptis", c:"cinema", a:3, lat:43.3125, lng:5.3844444, note:"Belle de Mai, géré par la Friche. Ciné-débats et conférences. 136 rue Loubon, 3e."},
+  {n:"Le César", c:"cinema", a:6, lat:43.2862748, lng:5.3832277, note:"Art et essai historique à Castellane, VO sous-titrée."},
 
   // Culture & idées
-  {n:"Mucem", c:"culture", lat:43.2966941, lng:5.3610825, note:"Au-delà des expos, guette les cycles de débats et conférences. Toit-terrasse sur la rade."},
-  {n:"Friche la Belle de Mai", c:"culture", lat:43.310172, lng:5.3905693, note:"Expos, résidences, concerts. L'écosystème art et tech de la ville. 41 rue Jobin, 3e."},
-  {n:"Coco Velten", c:"culture", lat:43.3016586, lng:5.3767013, note:"Lieu hybride et solidaire, concerts et cantine à prix libre. Rue Bernard du Bois, 1er."},
-  {n:"Cité Radieuse (Le Corbusier)", c:"culture", lat:43.2613455, lng:5.3964892, note:"L'Unité d'Habitation, toit-terrasse ouvert au public. Pèlerinage de design engineer. 280 bd Michelet, 8e."},
-  {n:"[mac] Musée d'art contemporain", c:"culture", lat:43.2502578, lng:5.3897089, note:"Fraîchement rénové, collection permanente gratuite. 69 av. d'Haïfa, 8e."},
-  {n:"Parc Borély", c:"culture", lat:43.260334, lng:5.3823007, note:"Le grand parc du sud, jardin botanique, parfait à vélo depuis la mer."},
+  {n:"Mucem", c:"culture", a:2, lat:43.2966941, lng:5.3610825, note:"Au-delà des expos, guette les cycles de débats et conférences. Toit-terrasse sur la rade."},
+  {n:"Friche la Belle de Mai", c:"culture", a:3, lat:43.310172, lng:5.3905693, note:"Expos, résidences, concerts. L'écosystème art et tech de la ville. 41 rue Jobin, 3e."},
+  {n:"Coco Velten", c:"culture", a:1, lat:43.3016586, lng:5.3767013, note:"Lieu hybride et solidaire, concerts et cantine à prix libre. Rue Bernard du Bois, 1er."},
+  {n:"Cité Radieuse (Le Corbusier)", c:"culture", a:8, lat:43.2613455, lng:5.3964892, note:"L'Unité d'Habitation, toit-terrasse ouvert au public. Pèlerinage de design engineer. 280 bd Michelet, 8e."},
+  {n:"[mac] Musée d'art contemporain", c:"culture", a:8, lat:43.2502578, lng:5.3897089, note:"Fraîchement rénové, collection permanente gratuite. 69 av. d'Haïfa, 8e."},
+  {n:"Parc Borély", c:"culture", a:8, lat:43.260334, lng:5.3823007, note:"Le grand parc du sud, jardin botanique, parfait à vélo depuis la mer."},
 
   // Alimentation
-  {n:"La Cité de l'Agriculture", c:"alim", lat:43.2995428, lng:5.3858187, note:"Agriculture urbaine et alimentation durable, avec cantine locale. Ton fil Capitulaire 2050. 6 sq. Stalingrad, 1er."},
-  {n:"Les Paniers Marseillais", c:"alim", lat:43.3028712, lng:5.3867365, note:"LE réseau AMAP : une trentaine de groupes bio partout en ville. Point de départ pour trouver la tienne. 28 bd National, 1er."},
+  {n:"La Cité de l'Agriculture", c:"alim", a:1, lat:43.2995428, lng:5.3858187, note:"Agriculture urbaine et alimentation durable, avec cantine locale. Ton fil Capitulaire 2050. 6 sq. Stalingrad, 1er."},
+  {n:"Les Paniers Marseillais", c:"alim", a:1, lat:43.3028712, lng:5.3867365, note:"LE réseau AMAP : une trentaine de groupes bio partout en ville. Point de départ pour trouver la tienne. 28 bd National, 1er."},
 
   // Mer & voile
-  {n:"Yachting Club Pointe Rouge", c:"mer", lat:43.2445742, lng:5.3679818, note:"Le gros club historique du port, école de voile et vue sur la rade."},
-  {n:"ASPTT Marseille Voile", c:"mer", lat:43.2446718, lng:5.3687678, note:"Stages dériveur et windsurf très bien notés, esprit club convivial."},
-  {n:"Société Nautique de Marseille", c:"mer", lat:43.2932276, lng:5.369931, note:"La Nautique : club historique sur ponton flottant, quai de Rive Neuve. École de voile et régates habitables."},
-  {n:"CNTL", c:"mer", lat:43.2932592, lng:5.3641983, note:"Cercle Nautique et Touristique du Lacydon, quai Marcel Pagnol. Régates, école de sport, restaurant sur le port."},
-  {n:"Union Nautique Marseillaise", c:"mer", lat:43.2933907, lng:5.3605993, note:"Club de quartier au pied du Pharo, bd Charles Livon. Ambiance associative."},
-  {n:"Marina Olympique Roucas Blanc", c:"mer", lat:43.2662315, lng:5.367694, note:"La base nautique municipale héritée des JO 2024, sur la Corniche. Voile légère et pôle course."},
-  {n:"1 2 3 Kayak", c:"mer", lat:43.2452902, lng:5.3728581, note:"Location à la plage de Montredon, départ idéal vers les Goudes."},
-  {n:"Callelongue", c:"mer", lat:43.212848, lng:5.354413, note:"Le bout du monde : dernière calanque accessible en bus, départ des sentiers de Marseilleveyre."},
+  {n:"Yachting Club Pointe Rouge", c:"mer", a:8, lat:43.2445742, lng:5.3679818, note:"Le gros club historique du port, école de voile et vue sur la rade."},
+  {n:"ASPTT Marseille Voile", c:"mer", a:8, lat:43.2446718, lng:5.3687678, note:"Stages dériveur et windsurf très bien notés, esprit club convivial."},
+  {n:"Société Nautique de Marseille", c:"mer", a:7, lat:43.2932276, lng:5.369931, note:"La Nautique : club historique sur ponton flottant, quai de Rive Neuve. École de voile et régates habitables."},
+  {n:"CNTL", c:"mer", a:7, lat:43.2932592, lng:5.3641983, note:"Cercle Nautique et Touristique du Lacydon, quai Marcel Pagnol. Régates, école de sport, restaurant sur le port."},
+  {n:"Union Nautique Marseillaise", c:"mer", a:7, lat:43.2933907, lng:5.3605993, note:"Club de quartier au pied du Pharo, bd Charles Livon. Ambiance associative."},
+  {n:"Marina Olympique Roucas Blanc", c:"mer", a:7, lat:43.2662315, lng:5.367694, note:"La base nautique municipale héritée des JO 2024, sur la Corniche. Voile légère et pôle course."},
+  {n:"1 2 3 Kayak", c:"mer", a:8, lat:43.2452902, lng:5.3728581, note:"Location à la plage de Montredon, départ idéal vers les Goudes."},
+  {n:"Callelongue", c:"mer", a:8, lat:43.212848, lng:5.354413, note:"Le bout du monde : dernière calanque accessible en bus, départ des sentiers de Marseilleveyre."},
 
   // Sport
-  {n:"Flow Studio (yoga)", c:"sport", lat:43.2927954, lng:5.3784761, note:"Vinyasa, kundalini, hatha, pilates. Rue Saint-Ferréol, 1er. Très bien noté."},
-  {n:"Bloom Yoga Studio", c:"sport", lat:43.2878091, lng:5.3764317, note:"Studio cosy avec café, yoga et pilates. 81 rue Saint-Jacques, 6e."},
-  {n:"Marseille Boxing Club", c:"sport", lat:43.3314773, lng:5.3827282, note:"Le club référence, du débutant au pro, avec sauna et espace détente. 14e."},
-  {n:"Royal Boxing Club", c:"sport", lat:43.2767084, lng:5.3826481, note:"Encadrement exigeant, sparring dédié, bien équipé. Rue du Commandant Rolland, 8e."},
-  {n:"Piscine Saint-Charles", c:"sport", lat:43.3061058, lng:5.3895789, note:"Piscine municipale du 1er, la plus proche du centre. Bonnet obligatoire."},
-  {n:"Piscine Vallier", c:"sport", lat:43.3005931, lng:5.4012865, note:"Municipale du 4e, rénovée, une des mieux tenues de la ville. Env. 3 €."},
-  {n:"Piscine Bonneveine", c:"sport", lat:43.2482527, lng:5.392773, note:"Municipale du 8e, vieillissante mais accueil sympa, pratique côté sud."},
-  {n:"Piscine Pointe Rouge", c:"sport", lat:43.2417337, lng:5.3636549, note:"Municipale face au port de la Pointe Rouge, propre et bien surveillée."}
+  {n:"Flow Studio (yoga)", c:"sport", a:1, lat:43.2927954, lng:5.3784761, note:"Vinyasa, kundalini, hatha, pilates. Rue Saint-Ferréol, 1er. Très bien noté."},
+  {n:"Bloom Yoga Studio", c:"sport", a:6, lat:43.2878091, lng:5.3764317, note:"Studio cosy avec café, yoga et pilates. 81 rue Saint-Jacques, 6e."},
+  {n:"Marseille Boxing Club", c:"sport", a:14, lat:43.3314773, lng:5.3827282, note:"Le club référence, du débutant au pro, avec sauna et espace détente. 14e."},
+  {n:"Royal Boxing Club", c:"sport", a:8, lat:43.2767084, lng:5.3826481, note:"Encadrement exigeant, sparring dédié, bien équipé. Rue du Commandant Rolland, 8e."},
+  {n:"Piscine Saint-Charles", c:"sport", a:1, lat:43.3061058, lng:5.3895789, note:"Piscine municipale du 1er, la plus proche du centre. Bonnet obligatoire."},
+  {n:"Piscine Vallier", c:"sport", a:4, lat:43.3005931, lng:5.4012865, note:"Municipale du 4e, rénovée, une des mieux tenues de la ville. Env. 3 €."},
+  {n:"Piscine Bonneveine", c:"sport", a:8, lat:43.2482527, lng:5.392773, note:"Municipale du 8e, vieillissante mais accueil sympa, pratique côté sud."},
+  {n:"Piscine Pointe Rouge", c:"sport", a:8, lat:43.2417337, lng:5.3636549, note:"Municipale face au port de la Pointe Rouge, propre et bien surveillée."}
 ];
+
+function arrLabel(a){
+  return a === 1 ? '1er' : a + 'e';
+}
+
+function haversineKm(lat1, lng1, lat2, lng2){
+  const R = 6371;
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+// Estimation urbaine : détours ~35 %, ~14 km/h en moyenne
+function bikeEstimate(from, to){
+  const straight = haversineKm(from.lat, from.lng, to.lat, to.lng);
+  const road = straight * 1.35;
+  const mins = Math.max(1, Math.round(road / 14 * 60));
+  return {km: road, mins};
+}
+
+function formatMins(mins){
+  if(mins < 60) return mins + ' min';
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m ? h + ' h ' + String(m).padStart(2, '0') : h + ' h';
+}
+
+function formatKm(km){
+  return (Math.round(km * 10) / 10).toString().replace('.', ',') + ' km';
+}
 
 const map = L.map('map', {zoomControl:true, attributionControl:true});
 map.attributionControl.setPrefix(false);
 
 // ---- Fond de carte : cascade de fournisseurs de tuiles.
-// On essaie chaque serveur dans l'ordre ; au premier qui répond, on s'arrête.
 const PROVIDERS = [
   {url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attr:'© OpenStreetMap'},
   {url:'https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png', attr:'© OpenStreetMap · Wikimedia'},
   {url:'https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', attr:'© OpenStreetMap · CARTO'},
   {url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', attr:'© Esri'}
 ];
-let providerIdx = 0, currentTiles = null, tileTimer = null, tilesOk = false;
+let tileTimer = null, tilesOk = false;
 
 function tryProvider(i){
   if(i >= PROVIDERS.length){
@@ -183,7 +247,6 @@ function tryProvider(i){
     map.removeLayer(layer);
     tryProvider(i + 1);
   });
-  // filet de sécurité si ni load ni error ne remontent
   tileTimer = setTimeout(() => {
     if(!tilesOk && !failed){
       failed = true;
@@ -191,52 +254,101 @@ function tryProvider(i){
       tryProvider(i + 1);
     }
   }, 3000);
-  currentTiles = layer;
   layer.addTo(map);
 }
 tryProvider(0);
 
-const active = new Set(Object.keys(CATS));
+const ARRONDissements = [...new Set(PLACES.map(p => p.a))].sort((a, b) => a - b);
+const activeCats = new Set(Object.keys(CATS));
+const activeArrs = new Set(ARRONDissements);
 const markers = [];
+let userPos = null;
+let userMarker = null;
+
+function popupHtml(p, bike){
+  const color = CATS[p.c].color;
+  const bikeLine = bike
+    ? `<div class="bike">${formatMins(bike.mins)} à vélo · ${formatKm(bike.km)}</div>`
+    : '';
+  return `<div class="pop">
+      <div class="cat"><span class="flag" style="background:${color}"></span>${CATS[p.c].label} · ${arrLabel(p.a)}</div>
+      <div class="name">${p.n}</div>
+      ${bikeLine}
+      <div class="note">${p.note}</div>
+    </div>`;
+}
+
+function labelText(p, bike){
+  return bike ? `${p.n} · ${formatMins(bike.mins)}` : p.n;
+}
+
+function bikeFor(p){
+  return userPos ? bikeEstimate(userPos, p) : null;
+}
 
 PLACES.forEach(p => {
   const color = CATS[p.c].color;
   const m = L.circleMarker([p.lat, p.lng], {
     radius:8, color:'#fff', weight:2, fillColor:color, fillOpacity:.95
   });
-  m.bindPopup(
-    `<div class="pop">
-      <div class="cat"><span class="flag" style="background:${color}"></span>${CATS[p.c].label}</div>
-      <div class="name">${p.n}</div>
-      <div class="note">${p.note}</div>
-    </div>`
-  );
+  m.bindPopup(popupHtml(p, null));
   m.bindTooltip(p.n, {permanent:true, direction:'right', offset:[9,0], className:'mk-label'});
-  m._cat = p.c;
+  m._place = p;
   m.addTo(map);
   markers.push(m);
 });
+
+function updateBikeLabels(){
+  markers.forEach(m => {
+    const p = m._place;
+    const bike = bikeFor(p);
+    m.setPopupContent(popupHtml(p, bike));
+    m.setTooltipContent(labelText(p, bike));
+  });
+}
 
 function updateLabels(){
   document.getElementById('map').classList.toggle('lowzoom', map.getZoom() < 13);
 }
 map.on('zoomend', updateLabels);
 
+function isVisible(p){
+  return activeCats.has(p.c) && activeArrs.has(p.a);
+}
+
 function refresh(){
   markers.forEach(m => {
-    const show = active.has(m._cat);
+    const show = isVisible(m._place);
     if(show && !map.hasLayer(m)) m.addTo(map);
     if(!show && map.hasLayer(m)) map.removeLayer(m);
   });
-  const visible = markers.filter(m => active.has(m._cat));
+  const visible = markers.filter(m => isVisible(m._place));
   document.getElementById('count').textContent = visible.length + ' lieux';
   if(visible.length){
-    map.fitBounds(L.featureGroup(visible).getBounds().pad(0.12));
+    const layers = visible.slice();
+    if(userMarker && map.hasLayer(userMarker)) layers.push(userMarker);
+    map.fitBounds(L.featureGroup(layers).getBounds().pad(0.12));
   }
   document.querySelectorAll('.chip[data-cat]').forEach(ch => {
-    ch.classList.toggle('off', !active.has(ch.dataset.cat));
-    ch.setAttribute('aria-pressed', active.has(ch.dataset.cat));
+    ch.classList.toggle('off', !activeCats.has(ch.dataset.cat));
+    ch.setAttribute('aria-pressed', activeCats.has(ch.dataset.cat));
   });
+  document.querySelectorAll('.chip[data-arr]').forEach(ch => {
+    const a = Number(ch.dataset.arr);
+    ch.classList.toggle('off', !activeArrs.has(a));
+    ch.setAttribute('aria-pressed', activeArrs.has(a));
+  });
+}
+
+function toggleSet(set, key, allKeys){
+  if(set.size === 1 && set.has(key)){
+    allKeys.forEach(k => set.add(k));
+  } else if(set.size === allKeys.length){
+    set.clear(); set.add(key);
+  } else {
+    set.has(key) ? set.delete(key) : set.add(key);
+    if(set.size === 0) allKeys.forEach(k => set.add(k));
+  }
 }
 
 const chips = document.getElementById('chips');
@@ -244,7 +356,7 @@ const allChip = document.createElement('button');
 allChip.className = 'chip all';
 allChip.textContent = 'Tout';
 allChip.onclick = () => {
-  Object.keys(CATS).forEach(k => active.add(k));
+  Object.keys(CATS).forEach(k => activeCats.add(k));
   refresh();
 };
 chips.appendChild(allChip);
@@ -256,19 +368,90 @@ Object.entries(CATS).forEach(([key, cat]) => {
   b.setAttribute('aria-pressed','true');
   b.innerHTML = `<span class="flag" style="--fc:${cat.color};background:${cat.color}"></span>${cat.label}`;
   b.onclick = () => {
-    // tap sur une catégorie active seule = tout réafficher, sinon isoler
-    if(active.size === 1 && active.has(key)){
-      Object.keys(CATS).forEach(k => active.add(k));
-    } else if(active.size === Object.keys(CATS).length){
-      active.clear(); active.add(key);
-    } else {
-      active.has(key) ? active.delete(key) : active.add(key);
-      if(active.size === 0) Object.keys(CATS).forEach(k => active.add(k));
-    }
+    toggleSet(activeCats, key, Object.keys(CATS));
     refresh();
   };
   chips.appendChild(b);
 });
+
+const arrChips = document.getElementById('arrChips');
+const allArrChip = document.createElement('button');
+allArrChip.className = 'chip all';
+allArrChip.textContent = 'Tous';
+allArrChip.onclick = () => {
+  ARRONDissements.forEach(a => activeArrs.add(a));
+  refresh();
+};
+arrChips.appendChild(allArrChip);
+
+ARRONDissements.forEach(a => {
+  const b = document.createElement('button');
+  b.className = 'chip';
+  b.dataset.arr = String(a);
+  b.setAttribute('aria-pressed','true');
+  b.textContent = arrLabel(a);
+  b.onclick = () => {
+    toggleSet(activeArrs, a, ARRONDissements);
+    refresh();
+  };
+  arrChips.appendChild(b);
+});
+
+const bikeBtn = document.getElementById('bikeBtn');
+
+function clearUserPosition(){
+  userPos = null;
+  if(userMarker){
+    map.removeLayer(userMarker);
+    userMarker = null;
+  }
+  bikeBtn.classList.remove('on');
+  bikeBtn.setAttribute('aria-pressed', 'false');
+  bikeBtn.textContent = 'Temps à vélo';
+  updateBikeLabels();
+}
+
+function setUserPosition(lat, lng){
+  userPos = {lat, lng};
+  if(userMarker) map.removeLayer(userMarker);
+  userMarker = L.circleMarker([lat, lng], {
+    radius:9, color:'#fff', weight:3, fillColor:'#14303F', fillOpacity:1
+  });
+  userMarker.bindTooltip('Toi', {permanent:true, direction:'top', offset:[0,-10], className:'you-label'});
+  userMarker.addTo(map);
+  bikeBtn.classList.add('on');
+  bikeBtn.setAttribute('aria-pressed', 'true');
+  bikeBtn.textContent = 'Arrêter le vélo';
+  updateBikeLabels();
+  refresh();
+}
+
+bikeBtn.onclick = () => {
+  if(userPos){
+    clearUserPosition();
+    refresh();
+    return;
+  }
+  if(!navigator.geolocation){
+    bikeBtn.textContent = 'GPS indisponible';
+    setTimeout(() => { bikeBtn.textContent = 'Temps à vélo'; }, 2200);
+    return;
+  }
+  bikeBtn.disabled = true;
+  bikeBtn.textContent = 'Localisation…';
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      bikeBtn.disabled = false;
+      setUserPosition(pos.coords.latitude, pos.coords.longitude);
+    },
+    () => {
+      bikeBtn.disabled = false;
+      bikeBtn.textContent = 'Position refusée';
+      setTimeout(() => { bikeBtn.textContent = 'Temps à vélo'; }, 2200);
+    },
+    {enableHighAccuracy:true, timeout:10000, maximumAge:60000}
+  );
+};
 
 refresh();
 updateLabels();
