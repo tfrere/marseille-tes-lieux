@@ -223,6 +223,7 @@ const CATS = {
   cinema:    {label:"Ciné art & essai",   short:"Ciné", color:"#5B3E96"},
   culture:   {label:"Culture & idées",    short:"Culture", color:"#1F6FB2"},
   alim:      {label:"Alimentation",       short:"Alim", color:"#3E7C3A"},
+  amap:      {label:"AMAP & coopés",      short:"AMAP", color:"#6B8F2C"},
   mer:       {label:"Mer & voile",        short:"Mer", color:"#0E7C86"},
   sport:     {label:"Sport",              short:"Sport", color:"#C1355F"}
 };
@@ -247,7 +248,18 @@ const PLACES = [
   {n:"[mac] Musée d'art contemporain", c:"culture", a:8, lat:43.2502578, lng:5.3897089, note:"Fraîchement rénové, collection permanente gratuite. 69 av. d'Haïfa, 8e."},
   {n:"Parc Borély", c:"culture", a:8, lat:43.260334, lng:5.3823007, note:"Le grand parc du sud, jardin botanique, parfait à vélo depuis la mer."},
   {n:"La Cité de l'Agriculture", c:"alim", a:1, lat:43.2995428, lng:5.3858187, note:"Agriculture urbaine et alimentation durable, avec cantine locale. Ton fil Capitulaire 2050. 6 sq. Stalingrad, 1er."},
-  {n:"Les Paniers Marseillais", c:"alim", a:1, lat:43.3028712, lng:5.3867365, note:"LE réseau AMAP : une trentaine de groupes bio partout en ville. Point de départ pour trouver la tienne. 28 bd National, 1er."},
+
+  // AMAP & coopératives
+  {n:"Les Paniers Marseillais", c:"amap", a:1, lat:43.3028712, lng:5.3867365, note:"Le réseau des paniers de quartier : ~32 AMAP à Marseille et alentours. Point de départ pour trouver la tienne. 28 bd National, 1er."},
+  {n:"Super Cafoutch", c:"amap", a:2, lat:43.2984897, lng:5.3717038, note:"Supermarché coopératif et participatif : tu es client·e et co-gestionnaire (~3 h / mois). Local, bio, marges basses. 16 rue du Chevalier Roze, 2e."},
+  {n:"AMAP Belsunce", c:"amap", a:1, lat:43.2993692, lng:5.3775058, note:"Distribution de légumes au Grain de sable. Mardi 18h30–19h30. 34 rue du Baignoir, 1er."},
+  {n:"AMAP des Réformés", c:"amap", a:1, lat:43.2996555, lng:5.3860854, note:"Légumes bio, viande, pain, fromage. Distribution le mardi soir à la Casa Consolat. 1 rue Consolat, 1er."},
+  {n:"AMAP Bonneveine", c:"amap", a:8, lat:43.2461503, lng:5.3872020, note:"Panier de quartier côté sud. Maison pour Tous de Bonneveine, 70 av. André Zénatti, 8e."},
+  {n:"AMAP Bagatelle / Cadenelle", c:"amap", a:8, lat:43.2682426, lng:5.3821190, note:"Les Petits Pois : distribution au centre social de la Cadenelle. Quartier Bagatelle, 8e."},
+  {n:"AMAP des Caillols", c:"amap", a:12, lat:43.3061508, lng:5.4536602, note:"Distribution le vendredi soir à la paroisse des Caillols. Traverse Pignatel, 12e."},
+  {n:"VRAC Frais Vallon", c:"amap", a:13, lat:43.3254891, lng:5.4231773, note:"Groupement d'achats VRAC : alimentation durable accessible en quartier prioritaire. Frais Vallon, 13e."},
+  {n:"VRAC La Viste", c:"amap", a:15, lat:43.3596435, lng:5.3570093, note:"Groupement d'achats VRAC Marseille. La Viste, 15e."},
+
   {n:"Yachting Club Pointe Rouge", c:"mer", a:8, lat:43.2445742, lng:5.3679818, note:"Le gros club historique du port, école de voile et vue sur la rade."},
   {n:"ASPTT Marseille Voile", c:"mer", a:8, lat:43.2446718, lng:5.3687678, note:"Stages dériveur et windsurf très bien notés, esprit club convivial."},
   {n:"Société Nautique de Marseille", c:"mer", a:7, lat:43.2932276, lng:5.369931, note:"La Nautique : club historique sur ponton flottant, quai de Rive Neuve. École de voile et régates habitables."},
