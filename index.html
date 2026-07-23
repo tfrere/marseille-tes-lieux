@@ -25,12 +25,13 @@
     height:100dvh;overflow:hidden;position:relative;
   }
   #map{position:absolute;inset:0}
-  .leaflet-container{background:#DDE6E4;font:inherit;height:100%}
+  .leaflet-container{background:#E6E2D6;font:inherit;height:100%}
   .leaflet-container.picking{cursor:crosshair}
   .leaflet-control-zoom{margin-top:calc(12px + var(--safe-t)) !important;margin-left:calc(10px + var(--safe-l)) !important}
   .leaflet-control-attribution{
     max-width:42vw;font-size:9px !important;line-height:1.2;
     margin:0 !important;padding:2px 5px !important;
+    background:rgba(246,244,238,.85) !important;
   }
   .overlay{position:absolute;z-index:1000;pointer-events:none}
   .overlay > *{pointer-events:auto}
@@ -126,13 +127,13 @@
   .pop .note{font-size:12.5px;color:#3c4f5a}
 
   .mk-label{
-    background:transparent;border:none;box-shadow:none;
-    font-size:11px;font-weight:700;color:var(--ink);
-    text-shadow:-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff;
-    padding:0;
+    background:rgba(246,244,238,.94);border:1px solid rgba(20,48,63,.18);
+    border-radius:3px;box-shadow:0 1px 4px rgba(20,48,63,.12);
+    font-size:12px;font-weight:700;color:var(--ink);letter-spacing:.01em;
+    padding:3px 7px;white-space:nowrap;line-height:1.2;
   }
   .mk-label::before{display:none}
-  .lowzoom .mk-label{display:none}
+  .mk-label.is-hidden{visibility:hidden !important}
 
   .pick-label{
     background:var(--ink);color:#fff;border:none;border-radius:3px;
@@ -141,20 +142,13 @@
   .pick-label::before{display:none}
 
   .arr-label{
-    background:transparent;border:none;box-shadow:none;
-    color:var(--ink);font-size:12px;font-weight:800;letter-spacing:.04em;
-    text-shadow:-1px -1px 0 rgba(246,244,238,.95),1px -1px 0 rgba(246,244,238,.95),
-      -1px 1px 0 rgba(246,244,238,.95),1px 1px 0 rgba(246,244,238,.95);
-    padding:0;white-space:nowrap;
+    background:rgba(246,244,238,.78);border:1px solid rgba(20,48,63,.14);
+    border-radius:999px;box-shadow:none;
+    color:rgba(20,48,63,.72);font-size:11px;font-weight:800;letter-spacing:.06em;
+    padding:2px 8px;white-space:nowrap;line-height:1.2;
   }
   .arr-label::before{display:none}
-  .hide-arr .arr-label{display:none}
-
-  .arr-tip{
-    background:rgba(20,48,63,.9);color:#fff;border:none;border-radius:3px;
-    font-size:11px;font-weight:700;padding:4px 7px;box-shadow:none;
-  }
-  .arr-tip::before{display:none}
+  .arr-label.is-hidden{visibility:hidden !important}
 
   @media (max-width:720px){
     .filters{
@@ -222,6 +216,7 @@ const CATS = {
   ceramique: {label:"Céramique",          short:"Céramique", color:"#C4863B"},
   cinema:    {label:"Ciné art & essai",   short:"Ciné", color:"#5B3E96"},
   culture:   {label:"Culture & idées",    short:"Culture", color:"#1F6FB2"},
+  bars:      {label:"Bars & scènes",      short:"Bars", color:"#C45C26"},
   coop:      {label:"Coopérative",        short:"Coop", color:"#3E7C3A"},
   amap:      {label:"AMAP",               short:"AMAP", color:"#6B8F2C"},
   milite:    {label:"Gauche militante",   short:"Gauche", color:"#8B1E3F"},
@@ -274,7 +269,12 @@ const PLACES = [
   {n:"L'Hydre aux mille têtes", c:"milite", a:1, lat:43.2962738, lng:5.3867946, note:"Librairie politique / édition engagée, fréquente pour les rencontres Amis du Diplo et la critique sociale. 96 rue Saint-Savournin, 1er."},
   {n:"L'Odeur du Temps", c:"milite", a:1, lat:43.2951020, lng:5.3763141, note:"Librairie qui diffuse la presse et les éditions libertaires / contestataires. 35 rue Pavillon, 1er."},
   {n:"Le Molotov", c:"milite", a:6, lat:43.2927083, lng:5.3831674, note:"Salle / bar de la Plaine qui accueille souvent débats et rencontres de la gauche critique. 3 place Paul Cézanne, 6e."},
+  {n:"La Dar", c:"milite", a:6, lat:43.2928751, lng:5.3828041, note:"Centre social autogéré : local de quartier, cuisine collective, concerts, luttes. 127 rue d'Aubagne, 6e."},
   {n:"Amis du Monde diplomatique", c:"milite", a:1, lat:43.2994164, lng:5.3858632, note:"Pas de siège dédié : les Café-Diplo mensuels se tiennent au Grand Bar du Chapitre. 4 rue Consolat, 1er."},
+
+  // Bars & scènes — classiques de la Plaine
+  {n:"Le Bar de la Plaine", c:"bars", a:5, lat:43.2939891, lng:5.3868009, note:"LE bar mythique de la place Jean-Jaurès. Terrasse, concerts, institution du quartier. 57 place Jean-Jaurès, 5e."},
+  {n:"L'Intermédiaire", c:"bars", a:6, lat:43.2939425, lng:5.3865141, note:"Bistrot musical duplex face à la Plaine : lives, rock et soirées. Façade rouge impossible à rater. 63 place Jean-Jaurès, 6e."},
 
   // Extrême droite — locaux publics documentés
   {n:"Action Française Provence", c:"xdroite", a:6, lat:43.2899121, lng:5.3879110, note:"Local du mouvement royaliste nationaliste, depuis 2014. Zone souvent sous tension. 14 rue Navarin, 6e."},
@@ -341,10 +341,10 @@ map.getPane('arrLabels').style.zIndex = 450;
 map.getPane('arrLabels').style.pointerEvents = 'none';
 
 const PROVIDERS = [
-  {url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attr:'© OpenStreetMap'},
-  {url:'https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png', attr:'© OpenStreetMap · Wikimedia'},
-  {url:'https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', attr:'© OpenStreetMap · CARTO'},
-  {url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', attr:'© Esri'}
+  {url:'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', attr:'© OpenStreetMap · CARTO', opts:{subdomains:'abcd', maxZoom:20}},
+  {url:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', attr:'© OpenStreetMap · CARTO', opts:{subdomains:'abcd', maxZoom:20}},
+  {url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attr:'© OpenStreetMap', opts:{maxZoom:19}},
+  {url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', attr:'© Esri', opts:{maxZoom:19}}
 ];
 let tileTimer = null, tilesOk = false;
 
@@ -354,7 +354,7 @@ function tryProvider(i){
     return;
   }
   const p = PROVIDERS[i];
-  const layer = L.tileLayer(p.url, {maxZoom:19, attribution:p.attr});
+  const layer = L.tileLayer(p.url, Object.assign({attribution:p.attr}, p.opts || {}));
   let failed = false;
   layer.once('tileload', () => {
     tilesOk = true;
@@ -406,10 +406,10 @@ fetch('arrondissements.geojson')
       interactive:false,
       style: {
         color:'#14303F',
-        weight:1.75,
-        opacity:.5,
+        weight:1.2,
+        opacity:.28,
         fillColor:'#14303F',
-        fillOpacity:.06
+        fillOpacity:.03
       },
       onEachFeature(feature, layer){
         const name = feature.properties.n;
@@ -425,18 +425,99 @@ fetch('arrondissements.geojson')
         arrLabels.push(tip);
       }
     }).addTo(map);
-    updateArrLabels();
+    updateLabels();
   })
   .catch(() => {});
 
-function updateArrLabels(){
-  const show = map.getZoom() >= 11;
-  document.getElementById('map').classList.toggle('hide-arr', !show);
+function labelBox(pt, text, padX, padY){
+  const w = Math.min(190, 14 + text.length * 7.2);
+  const h = 20;
+  return {
+    x: pt.x + padX,
+    y: pt.y + padY - h / 2,
+    w, h
+  };
+}
+
+function overlaps(a, b, gap){
+  return a.x < b.x + b.w + gap &&
+    a.x + a.w + gap > b.x &&
+    a.y < b.y + b.h + gap &&
+    a.y + a.h + gap > b.y;
+}
+
+function declutterTips(items, gap){
+  const placed = [];
+  items.forEach(item => {
+    const el = item.tip && item.tip.getElement && item.tip.getElement();
+    if(!el) return;
+    const hit = placed.some(p => overlaps(item.box, p, gap));
+    el.classList.toggle('is-hidden', hit);
+    if(!hit) placed.push(item.box);
+  });
+  return placed;
+}
+
+function updateLabels(){
+  const z = map.getZoom();
+  const showPlaces = z >= 14;
+  const showArr = z >= 11 && z < 15;
+
   arrLabels.forEach(tip => {
-    if(show){
+    if(showArr){
       if(!tip._map) tip.addTo(map);
     } else if(tip._map){
       map.removeLayer(tip);
+    }
+  });
+
+  // Place labels: permanent + declutter only when zoomed in
+  markers.forEach(m => {
+    const tip = m.getTooltip();
+    if(!tip) return;
+    if(showPlaces && map.hasLayer(m)){
+      if(!tip.options.permanent){
+        m.unbindTooltip();
+        m.bindTooltip(m._place.n, {permanent:true, direction:'right', offset:[10,0], className:'mk-label'});
+      }
+    } else {
+      // hover-only at lower zoom to avoid soup
+      if(tip.options.permanent){
+        m.unbindTooltip();
+        m.bindTooltip(m._place.n, {permanent:false, direction:'top', offset:[0,-8], className:'mk-label'});
+      }
+    }
+  });
+
+  requestAnimationFrame(() => {
+    const kept = [];
+    if(showArr){
+      const arrItems = arrLabels
+        .filter(tip => tip._map)
+        .map(tip => {
+          const pt = map.latLngToContainerPoint(tip.getLatLng());
+          return {tip, box: labelBox(pt, tip.getContent(), -20, 0)};
+        })
+        .sort((a, b) => a.box.y - b.box.y || a.box.x - b.box.x);
+      declutterTips(arrItems, 6).forEach(b => kept.push(b));
+    }
+    if(showPlaces){
+      const placeItems = markers
+        .filter(m => map.hasLayer(m) && m.getTooltip() && m.getTooltip().options.permanent)
+        .map(m => {
+          const tip = m.getTooltip();
+          const pt = map.latLngToContainerPoint(m.getLatLng());
+          return {tip, box: labelBox(pt, m._place.n, 10, 0)};
+        })
+        .sort((a, b) => a.box.y - b.box.y || a.box.x - b.box.x);
+      // avoid covering arr labels already kept
+      placeItems.forEach(item => {
+        const el = item.tip.getElement();
+        if(!el) return;
+        const hit = kept.some(p => overlaps(item.box, p, 8));
+        el.classList.toggle('is-hidden', hit);
+        if(!hit) kept.push(item.box);
+      });
     }
   });
 }
@@ -444,10 +525,10 @@ function updateArrLabels(){
 PLACES.forEach(p => {
   const color = CATS[p.c].color;
   const m = L.circleMarker([p.lat, p.lng], {
-    radius:9, color:'#fff', weight:2, fillColor:color, fillOpacity:.95
+    radius:8, color:'#fff', weight:2, fillColor:color, fillOpacity:.95
   });
   m.bindPopup(popupHtml(p), {maxWidth:280, autoPanPadding:[48, 96]});
-  m.bindTooltip(p.n, {permanent:true, direction:'right', offset:[9,0], className:'mk-label'});
+  m.bindTooltip(p.n, {permanent:false, direction:'top', offset:[0,-8], className:'mk-label'});
   m._place = p;
   m.on('click', e => {
     if(!routeMode) return;
@@ -459,11 +540,7 @@ PLACES.forEach(p => {
   markers.push(m);
 });
 
-function updateLabels(){
-  document.getElementById('map').classList.toggle('lowzoom', map.getZoom() < 13);
-  updateArrLabels();
-}
-map.on('zoomend', updateLabels);
+map.on('zoomend moveend', updateLabels);
 
 function isVisible(p){
   return activeCats.has(p.c);
@@ -483,6 +560,7 @@ function refresh(fit = false){
     ch.classList.toggle('off', !activeCats.has(ch.dataset.cat));
     ch.setAttribute('aria-pressed', activeCats.has(ch.dataset.cat));
   });
+  updateLabels();
 }
 
 function toggleSet(set, key, allKeys){
