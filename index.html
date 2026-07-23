@@ -224,8 +224,9 @@ const CATS = {
   culture:   {label:"Culture & idées",    short:"Culture", color:"#1F6FB2"},
   coop:      {label:"Coopérative",        short:"Coop", color:"#3E7C3A"},
   amap:      {label:"AMAP",               short:"AMAP", color:"#6B8F2C"},
-  milite:    {label:"Extrême gauche",     short:"XG", color:"#8B1E3F"},
+  milite:    {label:"Gauche militante",   short:"Gauche", color:"#8B1E3F"},
   xdroite:   {label:"Extrême droite",     short:"XD", color:"#1B3A5F"},
+  macon:     {label:"Franc-maçonnerie",   short:"FM", color:"#4A5568"},
   mer:       {label:"Mer & voile",        short:"Mer", color:"#0E7C86"},
   sport:     {label:"Sport",              short:"Sport", color:"#C1355F"}
 };
@@ -262,18 +263,28 @@ const PLACES = [
   {n:"VRAC Frais Vallon", c:"amap", a:13, lat:43.3254891, lng:5.4231773, note:"Groupement d'achats VRAC : alimentation durable accessible en quartier prioritaire. Frais Vallon, 13e."},
   {n:"VRAC La Viste", c:"amap", a:15, lat:43.3596435, lng:5.3570093, note:"Groupement d'achats VRAC Marseille. La Viste, 15e."},
 
-  // Extrême gauche — locaux publics (librairies, syndicaux, archives)
+  // Gauche militante — locaux publics (associatifs, syndicaux, librairies, archives)
   {n:"Manifesten", c:"milite", a:1, lat:43.2968254, lng:5.3855235, note:"Café-librairie associatif autogéré près de la Plaine. Débats, cantines, librairie militante, une quinzaine de collectifs. 59 rue Adolphe Thiers, 1er."},
   {n:"CIRA Marseille", c:"milite", a:1, lat:43.3002709, lng:5.3877636, note:"Centre International de Recherches sur l'Anarchisme : archives, bouquinerie, causeries. Référence du mouvement libertaire. 50 rue Consolat, 1er."},
-  {n:"Transit Librairie", c:"milite", a:1, lat:43.3000150, lng:5.3879397, note:"Librairie associative : édition indépendante, pensées critiques et alternatives. 51 bd de la Libération, 1er."},
+  {n:"Transit Librairie", c:"milite", a:1, lat:43.3000150, lng:5.3879397, note:"Librairie associative : édition indépendante, pensées critiques. Point de rendez-vous fréquent des orga de gauche. 51 bd de la Libération, 1er."},
+  {n:"Mille Bâbords", c:"milite", a:1, lat:43.3010192, lng:5.3890554, note:"Médiathèque alternative et espace de luttes : permanences, projections, CNT. 61 rue Consolat, 1er."},
+  {n:"Solidaires 13 / Attac", c:"milite", a:1, lat:43.3014184, lng:5.3881200, note:"Local de l'Union syndicale Solidaires 13 ; Attac Marseille y tient aussi ses permanences. 29 bd Longchamp, 1er."},
   {n:"CNT-AIT Marseille", c:"milite", a:1, lat:43.2961530, lng:5.3810484, note:"Syndicat anarcho-syndicaliste. Permanences à la Vieille Bourse du Travail. 13 rue de l'Académie, 1er."},
   {n:"CNT-SO 13", c:"milite", a:5, lat:43.2859761, lng:5.3912228, note:"Syndicat Solidarité Ouvrière : nettoyage, hôtellerie, restauration. Permanences juridiques. 24–28 rue de l'Abbé Féraud, 5e."},
+  {n:"L'Hydre aux mille têtes", c:"milite", a:1, lat:43.2962738, lng:5.3867946, note:"Librairie politique / édition engagée, fréquente pour les rencontres Amis du Diplo et la critique sociale. 96 rue Saint-Savournin, 1er."},
   {n:"L'Odeur du Temps", c:"milite", a:1, lat:43.2951020, lng:5.3763141, note:"Librairie qui diffuse la presse et les éditions libertaires / contestataires. 35 rue Pavillon, 1er."},
+  {n:"Le Molotov", c:"milite", a:6, lat:43.2927083, lng:5.3831674, note:"Salle / bar de la Plaine qui accueille souvent débats et rencontres de la gauche critique. 3 place Paul Cézanne, 6e."},
+  {n:"Amis du Monde diplomatique", c:"milite", a:1, lat:43.2994164, lng:5.3858632, note:"Pas de siège dédié : les Café-Diplo mensuels se tiennent au Grand Bar du Chapitre. 4 rue Consolat, 1er."},
 
   // Extrême droite — locaux publics documentés
   {n:"Action Française Provence", c:"xdroite", a:6, lat:43.2899121, lng:5.3879110, note:"Local du mouvement royaliste nationaliste, depuis 2014. Zone souvent sous tension. 14 rue Navarin, 6e."},
   {n:"RN Bouches-du-Rhône", c:"xdroite", a:6, lat:43.2855825, lng:5.3829679, note:"Siège de la fédération départementale du Rassemblement national. 9 rue Louis Maurel, 6e."},
   {n:"Reconquête Marseille", c:"xdroite", a:8, lat:43.2698953, lng:5.3876853, note:"Local du parti Reconquête (Zemmour / Ravier). 357 avenue du Prado, 8e."},
+
+  // Franc-maçonnerie — temples / hôtels d'obédience publics
+  {n:"Château Saint-Antoine (GLDF)", c:"macon", a:11, lat:43.2877382, lng:5.4885474, note:"Hôtel de la Grande Loge de France à La Valentine : temples + conférences / JEP ouvertes au public. 10 bd Jules Sebastianelli, 11e."},
+  {n:"Cercle de l'Acacia", c:"macon", a:5, lat:43.2940457, lng:5.4124882, note:"Temples maçonniques (Porte de Jean) : accueille notamment le Droit Humain et d'autres obédiences. 164 chemin Saint-Jean-du-Désert, 5e."},
+  {n:"Ancien temple GODF Bédarride", c:"macon", a:6, lat:43.2942614, lng:5.3826034, note:"Historique temple du Grand Orient (XIXe–2018), rue Armand Bédarride près du Cours Julien. Activités surtout déplacées vers Saint-Antoine. 24 rue Armand Bédarride, 6e."},
 
   {n:"Yachting Club Pointe Rouge", c:"mer", a:8, lat:43.2445742, lng:5.3679818, note:"Le gros club historique du port, école de voile et vue sur la rade."},
   {n:"ASPTT Marseille Voile", c:"mer", a:8, lat:43.2446718, lng:5.3687678, note:"Stages dériveur et windsurf très bien notés, esprit club convivial."},
