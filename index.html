@@ -151,21 +151,21 @@
   }
   .pick-label::before{display:none}
 
-  .q-label{
+  .arr-label{
     background:transparent;border:none;box-shadow:none;
-    color:var(--ink);font-size:10px;font-weight:700;letter-spacing:.02em;
-    text-shadow:-1px -1px 0 rgba(246,244,238,.9),1px -1px 0 rgba(246,244,238,.9),
-      -1px 1px 0 rgba(246,244,238,.9),1px 1px 0 rgba(246,244,238,.9);
+    color:var(--ink);font-size:12px;font-weight:800;letter-spacing:.04em;
+    text-shadow:-1px -1px 0 rgba(246,244,238,.95),1px -1px 0 rgba(246,244,238,.95),
+      -1px 1px 0 rgba(246,244,238,.95),1px 1px 0 rgba(246,244,238,.95);
     padding:0;white-space:nowrap;
   }
-  .q-label::before{display:none}
-  .hide-quartiers .q-label{display:none}
+  .arr-label::before{display:none}
+  .hide-arr .arr-label{display:none}
 
-  .q-tip{
+  .arr-tip{
     background:rgba(20,48,63,.9);color:#fff;border:none;border-radius:3px;
     font-size:11px;font-weight:700;padding:4px 7px;box-shadow:none;
   }
-  .q-tip::before{display:none}
+  .arr-tip::before{display:none}
 
   @media (max-width:720px){
     .brand{
@@ -314,11 +314,11 @@ const map = L.map('map', {
   tapTolerance:25
 });
 map.attributionControl.setPrefix(false);
-map.createPane('quartiers');
-map.getPane('quartiers').style.zIndex = 350;
-map.createPane('qLabels');
-map.getPane('qLabels').style.zIndex = 450;
-map.getPane('qLabels').style.pointerEvents = 'none';
+map.createPane('arronds');
+map.getPane('arronds').style.zIndex = 350;
+map.createPane('arrLabels');
+map.getPane('arrLabels').style.zIndex = 450;
+map.getPane('arrLabels').style.pointerEvents = 'none';
 
 const PROVIDERS = [
   {url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attr:'© OpenStreetMap'},
@@ -361,8 +361,8 @@ tryProvider(0);
 
 const activeCats = new Set(Object.keys(CATS));
 const markers = [];
-let quartiersLayer = null;
-let quartierLabels = [];
+let arrondsLayer = null;
+let arrLabels = [];
 
 let routeMode = false;
 let picks = [];
@@ -375,54 +375,54 @@ const routeBar = document.getElementById('routeBar');
 const routeMeta = document.getElementById('routeMeta');
 const clearRouteBtn = document.getElementById('clearRouteBtn');
 
-fetch('quartiers.geojson')
+fetch('arrondissements.geojson')
   .then(r => {
     if(!r.ok) throw new Error('geo');
     return r.json();
   })
   .then(data => {
-    quartiersLayer = L.geoJSON(data, {
-      pane:'quartiers',
+    arrondsLayer = L.geoJSON(data, {
+      pane:'arronds',
       style: {
         color:'#14303F',
-        weight:1.5,
-        opacity:.55,
+        weight:1.75,
+        opacity:.5,
         fillColor:'#14303F',
-        fillOpacity:.08
+        fillOpacity:.06
       },
       onEachFeature(feature, layer){
         const name = feature.properties.n;
-        layer.bindTooltip(name, {
+        layer.bindTooltip(name + ' arr.', {
           sticky:true,
           direction:'center',
-          className:'q-tip',
+          className:'arr-tip',
           opacity:.95
         });
         layer.on('click', e => {
           if(!routeMode) return;
           L.DomEvent.stopPropagation(e);
-          addPick({lat:e.latlng.lat, lng:e.latlng.lng, label:name});
+          addPick({lat:e.latlng.lat, lng:e.latlng.lng, label:name + ' arr.'});
         });
         const c = layer.getBounds().getCenter();
         const tip = L.tooltip({
           permanent:true,
           direction:'center',
-          className:'q-label',
-          pane:'qLabels'
+          className:'arr-label',
+          pane:'arrLabels'
         })
           .setContent(name)
           .setLatLng(c);
-        quartierLabels.push(tip);
+        arrLabels.push(tip);
       }
     }).addTo(map);
-    updateQuartierLabels();
+    updateArrLabels();
   })
   .catch(() => {});
 
-function updateQuartierLabels(){
-  const show = map.getZoom() >= 13;
-  document.getElementById('map').classList.toggle('hide-quartiers', !show);
-  quartierLabels.forEach(tip => {
+function updateArrLabels(){
+  const show = map.getZoom() >= 11;
+  document.getElementById('map').classList.toggle('hide-arr', !show);
+  arrLabels.forEach(tip => {
     if(show){
       if(!tip._map) tip.addTo(map);
     } else if(tip._map){
@@ -451,7 +451,7 @@ PLACES.forEach(p => {
 
 function updateLabels(){
   document.getElementById('map').classList.toggle('lowzoom', map.getZoom() < 13);
-  updateQuartierLabels();
+  updateArrLabels();
 }
 map.on('zoomend', updateLabels);
 
