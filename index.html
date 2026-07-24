@@ -522,10 +522,39 @@ function updateLabels(){
   });
 }
 
+function pinMetrics(z){
+  // un peu plus petits, scale doux avec le zoom
+  const t = Math.max(0, Math.min(1, (z - 11) / 6));
+  return {
+    radius: 3.6 + t * 3.6,   // ~3.6 → 7.2
+    weight: 1.15 + t * 0.45, // anneau fin
+    pickRadius: 5.2 + t * 3.8,
+    pickWeight: 1.6 + t * 0.6
+  };
+}
+
+function syncPinSizes(){
+  const s = pinMetrics(map.getZoom());
+  markers.forEach(m => {
+    m.setRadius(s.radius);
+    m.setStyle({weight:s.weight, opacity:.98, fillOpacity:.9});
+  });
+  pickMarkers.forEach(m => {
+    m.setRadius(s.pickRadius);
+    m.setStyle({weight:s.pickWeight, opacity:1, fillOpacity:1});
+  });
+}
+
 PLACES.forEach(p => {
   const color = CATS[p.c].color;
+  const s = pinMetrics(map.getZoom());
   const m = L.circleMarker([p.lat, p.lng], {
-    radius:8, color:'#fff', weight:2, fillColor:color, fillOpacity:.95
+    radius:s.radius,
+    color:'#fff',
+    weight:s.weight,
+    opacity:.98,
+    fillColor:color,
+    fillOpacity:.9
   });
   m.bindPopup(popupHtml(p), {maxWidth:280, autoPanPadding:[48, 96]});
   m.bindTooltip(p.n, {permanent:false, direction:'top', offset:[0,-8], className:'mk-label'});
@@ -540,6 +569,7 @@ PLACES.forEach(p => {
   markers.push(m);
 });
 
+map.on('zoom', syncPinSizes);
 map.on('zoomend moveend', updateLabels);
 
 function isVisible(p){
@@ -622,12 +652,17 @@ function clearRoute(){
 
 function drawPickMarkers(){
   pickMarkers.forEach(m => map.removeLayer(m));
+  const s = pinMetrics(map.getZoom());
   pickMarkers = picks.map((p, i) => {
     const m = L.circleMarker([p.lat, p.lng], {
-      radius:11, color:'#fff', weight:3, fillColor:'#14303F', fillOpacity:1
+      radius:s.pickRadius,
+      color:'#fff',
+      weight:s.pickWeight,
+      fillColor:'#14303F',
+      fillOpacity:1
     });
     m.bindTooltip(i === 0 ? 'A' : 'B', {
-      permanent:true, direction:'top', offset:[0,-12], className:'pick-label'
+      permanent:true, direction:'top', offset:[0,-10], className:'pick-label'
     });
     m.addTo(map);
     return m;
@@ -712,6 +747,7 @@ map.on('click', e => {
 
 window.addEventListener('resize', () => map.invalidateSize());
 refresh(true);
+syncPinSizes();
 updateLabels();
 </script>
 </body>
